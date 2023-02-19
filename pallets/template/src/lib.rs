@@ -48,7 +48,7 @@ pub mod pallet {
 		SomethingStored(u32, T::AccountId),
 	}
 
-	// Errors inform users that something went wrong.
+	// Errors infordevm users that something went wrong.
 	#[pallet::error]
 	pub enum Error<T> {
 		/// Error names should be descriptive.
