@@ -12,6 +12,7 @@ pub mod pallet {
 	use frame_support::storage::PrefixIterator;
 	use frame_support::{dispatch::DispatchResultWithPostInfo, pallet_prelude::*};
 	use frame_system::pallet_prelude::*;
+	use sp_std::vec::Vec;
 
 
 	#[pallet::config]
@@ -32,7 +33,7 @@ pub mod pallet {
 	}
 
 	#[pallet::event]
-	#[pallet::generate_deposit(pub (super) fn deposit_event)]
+	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// Consumer submits demand quantity and price
 		Bid {

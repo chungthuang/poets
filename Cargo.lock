@@ -4517,6 +4517,7 @@ dependencies = [
  "sp-core",
  "sp-io",
  "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]
@@ -6241,6 +6242,7 @@ dependencies = [
  "frame-try-runtime",
  "hex-literal",
  "log",
+ "market-input",
  "pallet-aura",
  "pallet-authorship",
  "pallet-balances",

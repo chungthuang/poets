@@ -16,6 +16,9 @@ frame-benchmarking = { git = "https://github.com/paritytech/substrate", default-
 frame-support = { git = "https://github.com/paritytech/substrate", default-features = false, "branch" = "polkadot-v0.9.37" }
 frame-system = { git = "https://github.com/paritytech/substrate", default-features = false, "branch" = "polkadot-v0.9.37" }
 
+# Substrate packages
+sp-std = { git = "https://github.com/paritytech/substrate", default-features = false, "branch" = "polkadot-v0.9.37" }
+
 [dev-dependencies]
 serde = '1.0'
 
@@ -23,6 +26,7 @@ serde = '1.0'
 sp-core = { git = "https://github.com/paritytech/substrate", default-features = false, "branch" = "polkadot-v0.9.37" }
 sp-io = { git = "https://github.com/paritytech/substrate", default-features = false, "branch" = "polkadot-v0.9.37" }
 sp-runtime = { git = "https://github.com/paritytech/substrate", default-features = false, "branch" = "polkadot-v0.9.37" }
+
 
 [features]
 default = ["std"]
@@ -33,5 +37,7 @@ std = [
 	"frame-benchmarking/std",
 	"frame-support/std",
 	"frame-system/std",
+	"sp-core/std",
+	"sp-std/std",
 ]
 try-runtime = [ "frame-support/try-runtime" ]

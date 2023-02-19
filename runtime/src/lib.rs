@@ -56,6 +56,9 @@ use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 use xcm::latest::prelude::BodyId;
 use xcm_executor::XcmExecutor;
 
+/// Import market-input pallet.
+pub use market_input;
+
 /// Import the template pallet.
 pub use pallet_template;
 
@@ -427,6 +430,13 @@ parameter_types! {
 	pub const SessionLength: BlockNumber = 6 * HOURS;
 	pub const MaxInvulnerables: u32 = 100;
 	pub const ExecutiveBody: BodyId = BodyId::Executive;
+	pub const OpenPeriod: u64 = 10;
+	pub const Bound: market_input::Bound = market_input::Bound {
+		min_price: 1,
+		max_price: 10,
+		min_quantity: 1,
+		max_quantity: 10,
+	};
 }
 
 // We allow root only to execute privileged collator selection operations.
@@ -451,6 +461,12 @@ impl pallet_collator_selection::Config for Runtime {
 /// Configure the pallet template in pallets/template.
 impl pallet_template::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
+}
+
+impl market_input::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type OpenPeriod = OpenPeriod;
+	type Bound = Bound;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -487,6 +503,7 @@ construct_runtime!(
 
 		// Template
 		TemplatePallet: pallet_template::{Pallet, Call, Storage, Event<T>}  = 40,
+		MarketInputPallet: market_input::{Pallet, Call, Storage, Event<T>} = 41,
 	}
 );
 
