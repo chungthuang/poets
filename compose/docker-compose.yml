@@ -1,0 +1,37 @@
+version: "3.9"
+services:
+  alice-validator:
+    image: parity/polkadot:v0.9.37
+    command: [
+      "--alice",
+      "--validator",
+      "--base-path=/tmp/relay/alice",
+      "--chain=/etc/polkadot/raw-local-chainspec.json",
+      "--port=30333",
+      "--ws-port=9944",
+      "--unsafe-rpc-external",
+      "--unsafe-ws-external",
+    ]
+    ports:
+      - "30333:30333"
+      - "9933:9933"
+      - "9944:9944"
+    volumes:
+      - ..//specs:/etc/polkadot
+  bob-validator:
+    image: parity/polkadot:v0.9.37
+    command: [
+      "--bob",
+      "--validator",
+      "--base-path=/tmp/relay/bob",
+      "--chain=/etc/polkadot/raw-local-chainspec.json",
+      "--port=30334",
+      "--ws-port=9945",
+      "--unsafe-rpc-external",
+      "--unsafe-ws-external",
+    ]
+    ports:
+      - "30334:30334"
+      - "9945:9945"
+    volumes:
+      - ../specs:/etc/polkadot
