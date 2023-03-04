@@ -47,6 +47,8 @@ pub mod pallet {
 			quantity: u64,
 			price: u64,
 		},
+		BeginOpenMarket,
+		BeginClearMarket,
 		// Demand is matched
 		// Supply is matched
 		//Transfer(T::AccountId, T::AccountId, u64), // (from, to, value)
@@ -133,11 +135,21 @@ pub mod pallet {
 		/// https://substrate.stackexchange.com/questions/4371/how-to-weight-on-initialize
 		fn on_initialize(block_number: T::BlockNumber) -> Weight {
 			if block_number.try_into().unwrap_or(0) % T::OpenPeriod::get() == 0 {
-				match <Stage<T>>::get() {
-					Some(MARKET_STAGE_OPEN) => <Stage<T>>::put(MARKET_STAGE_CLEARING),
-					Some(MARKET_STAGE_CLEARING) => <Stage<T>>::put(MARKET_STAGE_OPEN),
-					_ => <Stage<T>>::put(MARKET_STAGE_OPEN),
+				let new_stage = match <Stage<T>>::get() {
+					Some(MARKET_STAGE_OPEN) => {
+						Self::deposit_event(Event::BeginClearMarket);
+						MARKET_STAGE_CLEARING
+					},
+					Some(MARKET_STAGE_CLEARING) => {
+						Self::deposit_event(Event::BeginOpenMarket);
+						MARKET_STAGE_OPEN
+					},
+					_ => {
+						Self::deposit_event(Event::BeginOpenMarket);
+						MARKET_STAGE_OPEN
+					},
 				};
+				<Stage<T>>::put(new_stage);
 			}
 			Weight::zero()
 		}
