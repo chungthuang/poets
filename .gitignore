@@ -16,3 +16,7 @@
 .DS_Store
 .idea
 .vscode
+
+plain-parachain-chainspec.json
+para-2000-genesis-state
+para-2000-wasm
