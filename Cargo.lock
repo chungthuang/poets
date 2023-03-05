@@ -4614,6 +4614,7 @@ dependencies = [
  "jsonrpc-core",
  "jsonrpc-core-client",
  "jsonrpc-derive",
+ "market-input",
  "market-input-runtime-api",
  "parity-scale-codec",
  "serde",
@@ -4627,8 +4628,13 @@ dependencies = [
 name = "market-input-runtime-api"
 version = "0.1.0"
 dependencies = [
+ "frame-support",
+ "market-input",
+ "parity-scale-codec",
+ "serde",
  "serde_json",
  "sp-api",
+ "sp-std",
 ]
 
 [[package]]

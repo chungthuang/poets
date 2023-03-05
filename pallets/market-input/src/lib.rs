@@ -2,13 +2,16 @@
 #![allow(clippy::unused_unit)]
 
 pub use pallet::*;
+use codec::{Decode, Encode};
+use frame_support::storage::bounded_vec::BoundedVec;
+use frame_support::traits::ConstU32;
+use serde::{Deserialize, Serialize};
 
 #[cfg(test)]
 mod tests;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use codec::{Decode, Encode};
 	use frame_support::storage::PrefixIterator;
 	use frame_support::{dispatch::DispatchResultWithPostInfo, pallet_prelude::*};
 	use frame_system::pallet_prelude::*;
@@ -271,8 +274,25 @@ pub mod pallet {
 	}
 }
 
+#[derive(Decode, Encode, Deserialize, Serialize)]
+pub struct MarketSubmissions {
+	//pub bids: BoundedVec<Submission, ConstU32<100>>,
+	//pub asks: BoundedVec<Submission, ConstU32<100>>,
+	pub stage: u64
+}
+
+#[derive(Decode, Encode, Deserialize, Serialize)]
+pub struct Submission {
+	pub quantity: u64,
+	pub price: u64,
+}
+
 impl<T: Config> Pallet<T> {
-	pub fn get_sum() -> u32 {
-		300
+	pub fn get_submissions() -> MarketSubmissions {
+		MarketSubmissions {
+			//bids: BoundedVec::default(),
+			//asks: BoundedVec::default(),
+			stage: <Stage<T>>::get().unwrap_or_default(),
+		}
 	}
 }
