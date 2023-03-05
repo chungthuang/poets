@@ -1,0 +1,75 @@
+//! RPC interface for the transaction payment module.
+
+use jsonrpc_core::{Error as RpcError, ErrorCode, Result};
+use jsonrpc_derive::rpc;
+use sp_api::ProvideRuntimeApi;
+use sp_blockchain::HeaderBackend;
+use sp_runtime::{generic::BlockId, traits::Block as BlockT};
+use std::sync::Arc;
+use market_input_runtime_api::MarketStateApi as MarketStateRuntimeApi;
+
+#[rpc]
+pub trait MarketStateApi<BlockHash> {
+	#[rpc(name = "marketInput_getState")]
+	fn get_state(&self, at: Option<BlockHash>) -> Result<u32>;
+}
+
+/// A struct that implements the `MarketStateApi`.
+pub struct MarketState<C, M> {
+	client: Arc<C>,
+	_marker: std::marker::PhantomData<M>,
+}
+
+impl<C, M> MarketState<C, M> {
+	/// Create new `MarketState` instance with the given reference to the client.
+	pub fn new(client: Arc<C>) -> Self {
+		Self {
+			client,
+			_marker: Default::default(),
+		}
+	}
+}
+
+/// Error type of this RPC api.
+pub enum Error {
+	/// The transaction was not decodable.
+ 	RuntimeError,
+}
+impl From<Error> for i64 {
+ 	fn from(e: Error) -> i64 {
+ 		match e {
+ 			Error::RuntimeError => 1000,
+ 		}
+ 	}
+}
+
+impl Error {
+	fn message(&self) -> String {
+		match self {
+			Self::RuntimeError => "Runtime API error".to_owned(),
+		}
+	}
+}
+
+impl<C, Block> MarketStateApi<<Block as BlockT>::Hash> for MarketState<C, Block>
+where
+	Block: BlockT,
+	C: Send + Sync + 'static,
+	C: ProvideRuntimeApi<Block>,
+	C: HeaderBackend<Block>,
+	C::Api: MarketStateRuntimeApi<Block>,
+{
+	fn get_state(&self, at: Option<<Block as BlockT>::Hash>) -> Result<u32> {
+		let api = self.client.runtime_api();
+		let at = BlockId::hash(at.unwrap_or_else(||
+			// If the block hash is not supplied assume the best block.
+			self.client.info().best_hash));
+
+		let runtime_api_result = api.get_state(&at);
+		runtime_api_result.map_err(|e| RpcError {
+			code: ErrorCode::ServerError(Error::RuntimeError.into()),
+			message: Error::RuntimeError.message(),
+			data: Some(format!("{:?}", e).into()),
+		})
+	}
+}

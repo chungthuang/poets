@@ -18,6 +18,7 @@ jsonrpsee = { version = "0.16.2", features = ["server"] }
 
 # Local
 parachain-template-runtime = { path = "../runtime" }
+market-input-rpc = { path = "../pallets/market-input/rpc" }
 
 # Substrate
 frame-benchmarking = { git = "https://github.com/paritytech/substrate", "branch" = "polkadot-v0.9.37" }

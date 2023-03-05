@@ -445,7 +445,7 @@ dependencies = [
  "array-bytes 4.2.0",
  "async-trait",
  "fnv",
- "futures",
+ "futures 0.3.25",
  "log",
  "parity-scale-codec",
  "parking_lot 0.12.1",
@@ -477,7 +477,7 @@ version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.37#946507ba9ef13e263534176b7b74e26fc56efbd4"
 dependencies = [
  "beefy-gadget",
- "futures",
+ "futures 0.3.25",
  "jsonrpsee",
  "log",
  "parity-scale-codec",
@@ -1318,7 +1318,7 @@ dependencies = [
  "sc-service",
  "sp-core",
  "sp-runtime",
- "url",
+ "url 2.3.1",
 ]
 
 [[package]]
@@ -1329,7 +1329,7 @@ dependencies = [
  "cumulus-client-consensus-common",
  "cumulus-client-network",
  "cumulus-primitives-core",
- "futures",
+ "futures 0.3.25",
  "parity-scale-codec",
  "parking_lot 0.12.1",
  "polkadot-node-primitives",
@@ -1352,7 +1352,7 @@ dependencies = [
  "async-trait",
  "cumulus-client-consensus-common",
  "cumulus-primitives-core",
- "futures",
+ "futures 0.3.25",
  "parity-scale-codec",
  "sc-client-api",
  "sc-consensus",
@@ -1383,7 +1383,7 @@ dependencies = [
  "cumulus-primitives-core",
  "cumulus-relay-chain-interface",
  "dyn-clone",
- "futures",
+ "futures 0.3.25",
  "log",
  "parity-scale-codec",
  "polkadot-primitives",
@@ -1403,7 +1403,7 @@ source = "git+https://github.com/paritytech/cumulus.git?branch=polkadot-v0.9.37#
 dependencies = [
  "async-trait",
  "cumulus-relay-chain-interface",
- "futures",
+ "futures 0.3.25",
  "futures-timer",
  "parity-scale-codec",
  "parking_lot 0.12.1",
@@ -1426,7 +1426,7 @@ source = "git+https://github.com/paritytech/cumulus.git?branch=polkadot-v0.9.37#
 dependencies = [
  "cumulus-primitives-core",
  "cumulus-relay-chain-interface",
- "futures",
+ "futures 0.3.25",
  "futures-timer",
  "parity-scale-codec",
  "polkadot-node-primitives",
@@ -1455,7 +1455,7 @@ dependencies = [
  "cumulus-relay-chain-inprocess-interface",
  "cumulus-relay-chain-interface",
  "cumulus-relay-chain-minimal-node",
- "futures",
+ "futures 0.3.25",
  "parking_lot 0.12.1",
  "polkadot-primitives",
  "sc-client-api",
@@ -1536,7 +1536,7 @@ name = "cumulus-pallet-parachain-system-proc-macro"
 version = "0.1.0"
 source = "git+https://github.com/paritytech/cumulus.git?branch=polkadot-v0.9.37#09418fc04c2608b123f36ca80f16df3d2096753b"
 dependencies = [
- "proc-macro-crate",
+ "proc-macro-crate 1.3.0",
  "proc-macro2",
  "quote",
  "syn",
@@ -1635,7 +1635,7 @@ version = "0.1.0"
 source = "git+https://github.com/paritytech/cumulus.git?branch=polkadot-v0.9.37#09418fc04c2608b123f36ca80f16df3d2096753b"
 dependencies = [
  "cumulus-primitives-core",
- "futures",
+ "futures 0.3.25",
  "parity-scale-codec",
  "sp-inherents",
  "sp-std",
@@ -1666,7 +1666,7 @@ dependencies = [
  "async-trait",
  "cumulus-primitives-core",
  "cumulus-relay-chain-interface",
- "futures",
+ "futures 0.3.25",
  "futures-timer",
  "polkadot-cli",
  "polkadot-client",
@@ -1690,7 +1690,7 @@ source = "git+https://github.com/paritytech/cumulus.git?branch=polkadot-v0.9.37#
 dependencies = [
  "async-trait",
  "cumulus-primitives-core",
- "futures",
+ "futures 0.3.25",
  "jsonrpsee-core",
  "parity-scale-codec",
  "polkadot-overseer",
@@ -1713,7 +1713,7 @@ dependencies = [
  "cumulus-primitives-core",
  "cumulus-relay-chain-interface",
  "cumulus-relay-chain-rpc-interface",
- "futures",
+ "futures 0.3.25",
  "lru",
  "polkadot-core-primitives",
  "polkadot-network-bridge",
@@ -1740,7 +1740,7 @@ dependencies = [
  "sp-runtime",
  "tokio",
  "tracing",
- "url",
+ "url 2.3.1",
 ]
 
 [[package]]
@@ -1751,7 +1751,7 @@ dependencies = [
  "async-trait",
  "cumulus-primitives-core",
  "cumulus-relay-chain-interface",
- "futures",
+ "futures 0.3.25",
  "futures-timer",
  "jsonrpsee",
  "lru",
@@ -1769,7 +1769,7 @@ dependencies = [
  "sp-storage",
  "tokio",
  "tracing",
- "url",
+ "url 2.3.1",
 ]
 
 [[package]]
@@ -2341,7 +2341,7 @@ version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e43f2f1833d64e33f15592464d6fdd70f349dda7b1a53088eb83cd94014008c5"
 dependencies = [
- "futures",
+ "futures 0.3.25",
 ]
 
 [[package]]
@@ -2408,7 +2408,7 @@ checksum = "f5aa1e3ae159e592ad222dc90c5acbad632b527779ba88486abe92782ab268bd"
 dependencies = [
  "expander 0.0.4",
  "indexmap",
- "proc-macro-crate",
+ "proc-macro-crate 1.3.0",
  "proc-macro2",
  "quote",
  "syn",
@@ -2469,7 +2469,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e24e6c429951433ccb7c87fd528c60084834dcd14763182c1f83291bcde24c34"
 dependencies = [
  "either",
- "futures",
+ "futures 0.3.25",
  "futures-timer",
  "log",
  "num-traits",
@@ -2536,7 +2536,7 @@ version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a9c384f161156f5260c24a097c56119f9be8c798586aecc13afbcbe7b7e26bf8"
 dependencies = [
- "percent-encoding",
+ "percent-encoding 2.2.0",
 ]
 
 [[package]]
@@ -2620,7 +2620,7 @@ name = "frame-election-provider-solution-type"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.37#946507ba9ef13e263534176b7b74e26fc56efbd4"
 dependencies = [
- "proc-macro-crate",
+ "proc-macro-crate 1.3.0",
  "proc-macro2",
  "quote",
  "syn",
@@ -2677,7 +2677,7 @@ name = "frame-remote-externalities"
 version = "0.10.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.37#946507ba9ef13e263534176b7b74e26fc56efbd4"
 dependencies = [
- "futures",
+ "futures 0.3.25",
  "log",
  "parity-scale-codec",
  "serde",
@@ -2740,7 +2740,7 @@ version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.37#946507ba9ef13e263534176b7b74e26fc56efbd4"
 dependencies = [
  "frame-support-procedural-tools-derive",
- "proc-macro-crate",
+ "proc-macro-crate 1.3.0",
  "proc-macro2",
  "quote",
  "syn",
@@ -2837,6 +2837,12 @@ name = "funty"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e6d5a32815ae3f33302d95fdcb2ce17862f8c65363dcfd29360480ba1001fc9c"
+
+[[package]]
+name = "futures"
+version = "0.1.31"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3a471a38ef8ed83cd6e40aa59c1ffe17db6855c18e3604d9c4ed8c08ebc28678"
 
 [[package]]
 name = "futures"
@@ -2948,6 +2954,7 @@ version = "0.3.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "197676987abd2f9cadff84926f410af1c183608d36641465df73ae8211dc65d6"
 dependencies = [
+ "futures 0.1.31",
  "futures-channel",
  "futures-core",
  "futures-io",
@@ -3367,6 +3374,17 @@ checksum = "b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39"
 
 [[package]]
 name = "idna"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "38f09e0f0b1fb55fdee1f17470ad800da77af5186a1a76c026b679358b7e844e"
+dependencies = [
+ "matches",
+ "unicode-bidi",
+ "unicode-normalization",
+]
+
+[[package]]
+name = "idna"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "418a0a6fab821475f634efe3ccc45c013f742efe03d853e8d3355d5cb850ecf8"
@@ -3405,7 +3423,7 @@ dependencies = [
  "async-io",
  "core-foundation",
  "fnv",
- "futures",
+ "futures 0.3.25",
  "if-addrs",
  "ipnet",
  "log",
@@ -3584,6 +3602,74 @@ dependencies = [
 ]
 
 [[package]]
+name = "jsonrpc-client-transports"
+version = "18.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d2b99d4207e2a04fb4581746903c2bb7eb376f88de9c699d0f3e10feeac0cd3a"
+dependencies = [
+ "derive_more",
+ "futures 0.3.25",
+ "jsonrpc-core",
+ "jsonrpc-pubsub",
+ "log",
+ "serde",
+ "serde_json",
+ "url 1.7.2",
+]
+
+[[package]]
+name = "jsonrpc-core"
+version = "18.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "14f7f76aef2d054868398427f6c54943cf3d1caa9a7ec7d0c38d69df97a965eb"
+dependencies = [
+ "futures 0.3.25",
+ "futures-executor",
+ "futures-util",
+ "log",
+ "serde",
+ "serde_derive",
+ "serde_json",
+]
+
+[[package]]
+name = "jsonrpc-core-client"
+version = "18.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b51da17abecbdab3e3d4f26b01c5ec075e88d3abe3ab3b05dc9aa69392764ec0"
+dependencies = [
+ "futures 0.3.25",
+ "jsonrpc-client-transports",
+]
+
+[[package]]
+name = "jsonrpc-derive"
+version = "18.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5b939a78fa820cdfcb7ee7484466746a7377760970f6f9c6fe19f9edcc8a38d2"
+dependencies = [
+ "proc-macro-crate 0.1.5",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "jsonrpc-pubsub"
+version = "18.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "240f87695e6c6f62fb37f05c02c04953cf68d6408b8c1c89de85c7a0125b1011"
+dependencies = [
+ "futures 0.3.25",
+ "jsonrpc-core",
+ "lazy_static",
+ "log",
+ "parking_lot 0.11.2",
+ "rand 0.7.3",
+ "serde",
+]
+
+[[package]]
 name = "jsonrpsee"
 version = "0.16.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3653,7 +3739,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baa6da1e4199c10d7b1d0a6e5e8bd8e55f351163b6f4b3cbb044672a69bd4c1c"
 dependencies = [
  "heck",
- "proc-macro-crate",
+ "proc-macro-crate 1.3.0",
  "proc-macro2",
  "quote",
  "syn",
@@ -3919,7 +4005,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2e0a0d2f693675f49ded13c5d510c48b78069e23cbd9108d7ccd59f6dc568819"
 dependencies = [
  "bytes",
- "futures",
+ "futures 0.3.25",
  "futures-timer",
  "getrandom 0.2.8",
  "instant",
@@ -3957,7 +4043,7 @@ dependencies = [
  "ed25519-dalek",
  "either",
  "fnv",
- "futures",
+ "futures 0.3.25",
  "futures-timer",
  "instant",
  "log",
@@ -3986,7 +4072,7 @@ version = "0.38.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8e42a271c1b49f789b92f7fc87749fa79ce5c7bdc88cbdfacb818a4bca47fec5"
 dependencies = [
- "futures",
+ "futures 0.3.25",
  "libp2p-core",
  "log",
  "parking_lot 0.12.1",
@@ -4001,7 +4087,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c052d0026f4817b44869bfb6810f4e1112f43aec8553f2cb38881c524b563abf"
 dependencies = [
  "asynchronous-codec",
- "futures",
+ "futures 0.3.25",
  "futures-timer",
  "libp2p-core",
  "libp2p-swarm",
@@ -4026,7 +4112,7 @@ dependencies = [
  "bytes",
  "either",
  "fnv",
- "futures",
+ "futures 0.3.25",
  "futures-timer",
  "instant",
  "libp2p-core",
@@ -4050,7 +4136,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "04f378264aade9872d6ccd315c0accc18be3a35d15fc1b9c36e5b6f983b62b5b"
 dependencies = [
  "data-encoding",
- "futures",
+ "futures 0.3.25",
  "if-watch",
  "libp2p-core",
  "libp2p-swarm",
@@ -4085,7 +4171,7 @@ checksum = "03805b44107aa013e7cbbfa5627b31c36cbedfdfb00603c0311998882bc4bace"
 dependencies = [
  "asynchronous-codec",
  "bytes",
- "futures",
+ "futures 0.3.25",
  "libp2p-core",
  "log",
  "nohash-hasher",
@@ -4103,7 +4189,7 @@ checksum = "a978cb57efe82e892ec6f348a536bfbd9fee677adbe5689d7a93ad3a9bffbf2e"
 dependencies = [
  "bytes",
  "curve25519-dalek 3.2.0",
- "futures",
+ "futures 0.3.25",
  "libp2p-core",
  "log",
  "once_cell",
@@ -4124,7 +4210,7 @@ version = "0.41.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "929fcace45a112536e22b3dcfd4db538723ef9c3cb79f672b98be2cc8e25f37f"
 dependencies = [
- "futures",
+ "futures 0.3.25",
  "futures-timer",
  "instant",
  "libp2p-core",
@@ -4141,7 +4227,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "01e7c867e95c8130667b24409d236d37598270e6da69b3baf54213ba31ffca59"
 dependencies = [
  "bytes",
- "futures",
+ "futures 0.3.25",
  "futures-timer",
  "if-watch",
  "libp2p-core",
@@ -4163,7 +4249,7 @@ checksum = "3236168796727bfcf4927f766393415361e2c644b08bedb6a6b13d957c9a4884"
 dependencies = [
  "async-trait",
  "bytes",
- "futures",
+ "futures 0.3.25",
  "instant",
  "libp2p-core",
  "libp2p-swarm",
@@ -4181,7 +4267,7 @@ checksum = "b2a35472fe3276b3855c00f1c032ea8413615e030256429ad5349cdf67c6e1a0"
 dependencies = [
  "either",
  "fnv",
- "futures",
+ "futures 0.3.25",
  "futures-timer",
  "instant",
  "libp2p-core",
@@ -4212,7 +4298,7 @@ version = "0.38.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b4b257baf6df8f2df39678b86c578961d48cc8b68642a12f0f763f56c8e5858d"
 dependencies = [
- "futures",
+ "futures 0.3.25",
  "futures-timer",
  "if-watch",
  "libc",
@@ -4228,7 +4314,7 @@ version = "0.1.0-alpha"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f7905ce0d040576634e8a3229a7587cc8beab83f79db6023800f1792895defa8"
 dependencies = [
- "futures",
+ "futures 0.3.25",
  "futures-rustls",
  "libp2p-core",
  "rcgen 0.10.0",
@@ -4246,7 +4332,7 @@ version = "0.38.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1bb1a35299860e0d4b3c02a3e74e3b293ad35ae0cee8a056363b0c862d082069"
 dependencies = [
- "futures",
+ "futures 0.3.25",
  "js-sys",
  "libp2p-core",
  "parity-send-wrapper",
@@ -4263,7 +4349,7 @@ dependencies = [
  "async-trait",
  "asynchronous-codec",
  "bytes",
- "futures",
+ "futures 0.3.25",
  "futures-timer",
  "hex",
  "if-watch",
@@ -4292,7 +4378,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1d705506030d5c0aaf2882437c70dab437605f21c5f9811978f694e6917a3b54"
 dependencies = [
  "either",
- "futures",
+ "futures 0.3.25",
  "futures-rustls",
  "libp2p-core",
  "log",
@@ -4300,7 +4386,7 @@ dependencies = [
  "quicksink",
  "rw-stream-sink",
  "soketto",
- "url",
+ "url 2.3.1",
  "webpki-roots",
 ]
 
@@ -4310,7 +4396,7 @@ version = "0.42.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4f63594a0aa818642d9d4915c791945053877253f08a3626f13416b5cd928a29"
 dependencies = [
- "futures",
+ "futures 0.3.25",
  "libp2p-core",
  "log",
  "parking_lot 0.12.1",
@@ -4511,6 +4597,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "log",
  "parity-scale-codec",
  "scale-info",
  "serde",
@@ -4518,6 +4605,30 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
+]
+
+[[package]]
+name = "market-input-rpc"
+version = "0.1.0"
+dependencies = [
+ "jsonrpc-core",
+ "jsonrpc-core-client",
+ "jsonrpc-derive",
+ "market-input-runtime-api",
+ "parity-scale-codec",
+ "serde",
+ "sp-api",
+ "sp-blockchain",
+ "sp-rpc",
+ "sp-runtime",
+]
+
+[[package]]
+name = "market-input-runtime-api"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
+ "sp-api",
 ]
 
 [[package]]
@@ -4635,7 +4746,7 @@ version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "69672161530e8aeca1d1400fbf3f1a1747ff60ea604265a4e906c2442df20532"
 dependencies = [
- "futures",
+ "futures 0.3.25",
  "rand 0.8.5",
  "thrift",
 ]
@@ -4672,7 +4783,7 @@ name = "mmr-gadget"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.37#946507ba9ef13e263534176b7b74e26fc56efbd4"
 dependencies = [
- "futures",
+ "futures 0.3.25",
  "log",
  "parity-scale-codec",
  "sc-client-api",
@@ -4740,11 +4851,11 @@ dependencies = [
  "data-encoding",
  "multibase",
  "multihash",
- "percent-encoding",
+ "percent-encoding 2.2.0",
  "serde",
  "static_assertions",
  "unsigned-varint",
- "url",
+ "url 2.3.1",
 ]
 
 [[package]]
@@ -4781,7 +4892,7 @@ version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc076939022111618a5026d3be019fd8b366e76314538ff9a1b59ffbcbf98bcd"
 dependencies = [
- "proc-macro-crate",
+ "proc-macro-crate 1.3.0",
  "proc-macro-error",
  "proc-macro2",
  "quote",
@@ -4802,7 +4913,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c8552ab875c1313b97b8d20cb857b9fd63e2d1d6a0a1b53ce9821e575405f27a"
 dependencies = [
  "bytes",
- "futures",
+ "futures 0.3.25",
  "log",
  "pin-project",
  "smallvec",
@@ -4898,7 +5009,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "65b4b14489ab424703c092062176d52ba55485a89c076b4f9db05092b7223aa6"
 dependencies = [
  "bytes",
- "futures",
+ "futures 0.3.25",
  "log",
  "netlink-packet-core",
  "netlink-sys",
@@ -4913,7 +5024,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "260e21fbb6f3d253a14df90eb0000a6066780a15dd901a7519ce02d77a94985b"
 dependencies = [
  "bytes",
- "futures",
+ "futures 0.3.25",
  "libc",
  "log",
  "tokio",
@@ -5105,7 +5216,7 @@ checksum = "17e7d5b6bb115db09390bed8842c94180893dd83df3dfce7354f2a2aa090a4ee"
 dependencies = [
  "async-trait",
  "dyn-clonable",
- "futures",
+ "futures 0.3.25",
  "futures-timer",
  "orchestra-proc-macro",
  "pin-project",
@@ -5123,7 +5234,7 @@ dependencies = [
  "expander 0.0.6",
  "itertools",
  "petgraph",
- "proc-macro-crate",
+ "proc-macro-crate 1.3.0",
  "proc-macro2",
  "quote",
  "syn",
@@ -5910,7 +6021,7 @@ name = "pallet-staking-reward-curve"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.37#946507ba9ef13e263534176b7b74e26fc56efbd4"
 dependencies = [
- "proc-macro-crate",
+ "proc-macro-crate 1.3.0",
  "proc-macro2",
  "quote",
  "syn",
@@ -6179,6 +6290,7 @@ dependencies = [
  "frame-benchmarking-cli",
  "jsonrpsee",
  "log",
+ "market-input-rpc",
  "pallet-transaction-payment-rpc",
  "parachain-template-runtime",
  "parity-scale-codec",
@@ -6317,7 +6429,7 @@ version = "3.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "86b26a931f824dd4eca30b3e43bb4f31cd5f0d3a403c5f5ff27106b805bfde7b"
 dependencies = [
- "proc-macro-crate",
+ "proc-macro-crate 1.3.0",
  "proc-macro2",
  "quote",
  "syn",
@@ -6436,6 +6548,12 @@ checksum = "24d159833a9105500e0398934e205e0773f0b27529557134ecfc51c27646adac"
 dependencies = [
  "base64ct",
 ]
+
+[[package]]
+name = "percent-encoding"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "31010dd2e1ac33d5b46a5b413495239882813e0369f8ed8a5e266f173602f831"
 
 [[package]]
 name = "percent-encoding"
@@ -6568,7 +6686,7 @@ name = "polkadot-approval-distribution"
 version = "0.9.37"
 source = "git+https://github.com/paritytech/polkadot?branch=release-v0.9.37#645723987cf9662244be8faf4e9b63e8b9a1b3a3"
 dependencies = [
- "futures",
+ "futures 0.3.25",
  "polkadot-node-metrics",
  "polkadot-node-network-protocol",
  "polkadot-node-primitives",
@@ -6583,7 +6701,7 @@ name = "polkadot-availability-bitfield-distribution"
 version = "0.9.37"
 source = "git+https://github.com/paritytech/polkadot?branch=release-v0.9.37#645723987cf9662244be8faf4e9b63e8b9a1b3a3"
 dependencies = [
- "futures",
+ "futures 0.3.25",
  "polkadot-node-network-protocol",
  "polkadot-node-subsystem",
  "polkadot-node-subsystem-util",
@@ -6599,7 +6717,7 @@ source = "git+https://github.com/paritytech/polkadot?branch=release-v0.9.37#6457
 dependencies = [
  "derive_more",
  "fatality",
- "futures",
+ "futures 0.3.25",
  "lru",
  "parity-scale-codec",
  "polkadot-erasure-coding",
@@ -6621,7 +6739,7 @@ version = "0.9.37"
 source = "git+https://github.com/paritytech/polkadot?branch=release-v0.9.37#645723987cf9662244be8faf4e9b63e8b9a1b3a3"
 dependencies = [
  "fatality",
- "futures",
+ "futures 0.3.25",
  "lru",
  "parity-scale-codec",
  "polkadot-erasure-coding",
@@ -6643,7 +6761,7 @@ source = "git+https://github.com/paritytech/polkadot?branch=release-v0.9.37#6457
 dependencies = [
  "clap",
  "frame-benchmarking-cli",
- "futures",
+ "futures 0.3.25",
  "log",
  "polkadot-client",
  "polkadot-node-core-pvf",
@@ -6673,7 +6791,7 @@ dependencies = [
  "frame-benchmarking-cli",
  "frame-system",
  "frame-system-rpc-runtime-api",
- "futures",
+ "futures 0.3.25",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "polkadot-core-primitives",
@@ -6713,7 +6831,7 @@ dependencies = [
  "always-assert",
  "bitvec",
  "fatality",
- "futures",
+ "futures 0.3.25",
  "futures-timer",
  "polkadot-node-network-protocol",
  "polkadot-node-primitives",
@@ -6746,7 +6864,7 @@ source = "git+https://github.com/paritytech/polkadot?branch=release-v0.9.37#6457
 dependencies = [
  "derive_more",
  "fatality",
- "futures",
+ "futures 0.3.25",
  "futures-timer",
  "indexmap",
  "lru",
@@ -6783,7 +6901,7 @@ name = "polkadot-gossip-support"
 version = "0.9.37"
 source = "git+https://github.com/paritytech/polkadot?branch=release-v0.9.37#645723987cf9662244be8faf4e9b63e8b9a1b3a3"
 dependencies = [
- "futures",
+ "futures 0.3.25",
  "futures-timer",
  "polkadot-node-network-protocol",
  "polkadot-node-subsystem",
@@ -6807,7 +6925,7 @@ dependencies = [
  "async-trait",
  "bytes",
  "fatality",
- "futures",
+ "futures 0.3.25",
  "parity-scale-codec",
  "parking_lot 0.12.1",
  "polkadot-node-metrics",
@@ -6827,7 +6945,7 @@ name = "polkadot-node-collation-generation"
 version = "0.9.37"
 source = "git+https://github.com/paritytech/polkadot?branch=release-v0.9.37#645723987cf9662244be8faf4e9b63e8b9a1b3a3"
 dependencies = [
- "futures",
+ "futures 0.3.25",
  "parity-scale-codec",
  "polkadot-erasure-coding",
  "polkadot-node-primitives",
@@ -6847,7 +6965,7 @@ source = "git+https://github.com/paritytech/polkadot?branch=release-v0.9.37#6457
 dependencies = [
  "bitvec",
  "derive_more",
- "futures",
+ "futures 0.3.25",
  "futures-timer",
  "kvdb",
  "lru",
@@ -6875,7 +6993,7 @@ version = "0.9.37"
 source = "git+https://github.com/paritytech/polkadot?branch=release-v0.9.37#645723987cf9662244be8faf4e9b63e8b9a1b3a3"
 dependencies = [
  "bitvec",
- "futures",
+ "futures 0.3.25",
  "futures-timer",
  "kvdb",
  "parity-scale-codec",
@@ -6896,7 +7014,7 @@ source = "git+https://github.com/paritytech/polkadot?branch=release-v0.9.37#6457
 dependencies = [
  "bitvec",
  "fatality",
- "futures",
+ "futures 0.3.25",
  "polkadot-erasure-coding",
  "polkadot-node-primitives",
  "polkadot-node-subsystem",
@@ -6913,7 +7031,7 @@ name = "polkadot-node-core-bitfield-signing"
 version = "0.9.37"
 source = "git+https://github.com/paritytech/polkadot?branch=release-v0.9.37#645723987cf9662244be8faf4e9b63e8b9a1b3a3"
 dependencies = [
- "futures",
+ "futures 0.3.25",
  "polkadot-node-subsystem",
  "polkadot-node-subsystem-util",
  "polkadot-primitives",
@@ -6929,7 +7047,7 @@ version = "0.9.37"
 source = "git+https://github.com/paritytech/polkadot?branch=release-v0.9.37#645723987cf9662244be8faf4e9b63e8b9a1b3a3"
 dependencies = [
  "async-trait",
- "futures",
+ "futures 0.3.25",
  "futures-timer",
  "parity-scale-codec",
  "polkadot-node-core-pvf",
@@ -6947,7 +7065,7 @@ name = "polkadot-node-core-chain-api"
 version = "0.9.37"
 source = "git+https://github.com/paritytech/polkadot?branch=release-v0.9.37#645723987cf9662244be8faf4e9b63e8b9a1b3a3"
 dependencies = [
- "futures",
+ "futures 0.3.25",
  "polkadot-node-metrics",
  "polkadot-node-subsystem",
  "polkadot-primitives",
@@ -6962,7 +7080,7 @@ name = "polkadot-node-core-chain-selection"
 version = "0.9.37"
 source = "git+https://github.com/paritytech/polkadot?branch=release-v0.9.37#645723987cf9662244be8faf4e9b63e8b9a1b3a3"
 dependencies = [
- "futures",
+ "futures 0.3.25",
  "futures-timer",
  "kvdb",
  "parity-scale-codec",
@@ -6980,7 +7098,7 @@ version = "0.9.37"
 source = "git+https://github.com/paritytech/polkadot?branch=release-v0.9.37#645723987cf9662244be8faf4e9b63e8b9a1b3a3"
 dependencies = [
  "fatality",
- "futures",
+ "futures 0.3.25",
  "kvdb",
  "lru",
  "parity-scale-codec",
@@ -6999,7 +7117,7 @@ version = "0.9.37"
 source = "git+https://github.com/paritytech/polkadot?branch=release-v0.9.37#645723987cf9662244be8faf4e9b63e8b9a1b3a3"
 dependencies = [
  "async-trait",
- "futures",
+ "futures 0.3.25",
  "futures-timer",
  "polkadot-node-subsystem",
  "polkadot-overseer",
@@ -7017,7 +7135,7 @@ source = "git+https://github.com/paritytech/polkadot?branch=release-v0.9.37#6457
 dependencies = [
  "bitvec",
  "fatality",
- "futures",
+ "futures 0.3.25",
  "futures-timer",
  "polkadot-node-primitives",
  "polkadot-node-subsystem",
@@ -7036,7 +7154,7 @@ dependencies = [
  "always-assert",
  "assert_matches",
  "cpu-time",
- "futures",
+ "futures 0.3.25",
  "futures-timer",
  "parity-scale-codec",
  "pin-project",
@@ -7065,7 +7183,7 @@ name = "polkadot-node-core-pvf-checker"
 version = "0.9.37"
 source = "git+https://github.com/paritytech/polkadot?branch=release-v0.9.37#645723987cf9662244be8faf4e9b63e8b9a1b3a3"
 dependencies = [
- "futures",
+ "futures 0.3.25",
  "polkadot-node-primitives",
  "polkadot-node-subsystem",
  "polkadot-node-subsystem-util",
@@ -7081,7 +7199,7 @@ name = "polkadot-node-core-runtime-api"
 version = "0.9.37"
 source = "git+https://github.com/paritytech/polkadot?branch=release-v0.9.37#645723987cf9662244be8faf4e9b63e8b9a1b3a3"
 dependencies = [
- "futures",
+ "futures 0.3.25",
  "lru",
  "polkadot-node-metrics",
  "polkadot-node-subsystem",
@@ -7115,7 +7233,7 @@ version = "0.9.37"
 source = "git+https://github.com/paritytech/polkadot?branch=release-v0.9.37#645723987cf9662244be8faf4e9b63e8b9a1b3a3"
 dependencies = [
  "bs58",
- "futures",
+ "futures 0.3.25",
  "futures-timer",
  "log",
  "parity-scale-codec",
@@ -7136,7 +7254,7 @@ dependencies = [
  "async-trait",
  "derive_more",
  "fatality",
- "futures",
+ "futures 0.3.25",
  "hex",
  "parity-scale-codec",
  "polkadot-node-jaeger",
@@ -7157,7 +7275,7 @@ version = "0.9.37"
 source = "git+https://github.com/paritytech/polkadot?branch=release-v0.9.37#645723987cf9662244be8faf4e9b63e8b9a1b3a3"
 dependencies = [
  "bounded-vec",
- "futures",
+ "futures 0.3.25",
  "parity-scale-codec",
  "polkadot-parachain",
  "polkadot-primitives",
@@ -7190,7 +7308,7 @@ source = "git+https://github.com/paritytech/polkadot?branch=release-v0.9.37#6457
 dependencies = [
  "async-trait",
  "derive_more",
- "futures",
+ "futures 0.3.25",
  "orchestra",
  "polkadot-node-jaeger",
  "polkadot-node-network-protocol",
@@ -7214,7 +7332,7 @@ dependencies = [
  "async-trait",
  "derive_more",
  "fatality",
- "futures",
+ "futures 0.3.25",
  "futures-channel",
  "itertools",
  "kvdb",
@@ -7245,7 +7363,7 @@ version = "0.9.37"
 source = "git+https://github.com/paritytech/polkadot?branch=release-v0.9.37#645723987cf9662244be8faf4e9b63e8b9a1b3a3"
 dependencies = [
  "async-trait",
- "futures",
+ "futures 0.3.25",
  "futures-timer",
  "lru",
  "orchestra",
@@ -7566,7 +7684,7 @@ dependencies = [
  "beefy-gadget",
  "frame-support",
  "frame-system-rpc-runtime-api",
- "futures",
+ "futures 0.3.25",
  "hex-literal",
  "kusama-runtime",
  "kvdb",
@@ -7670,7 +7788,7 @@ source = "git+https://github.com/paritytech/polkadot?branch=release-v0.9.37#6457
 dependencies = [
  "arrayvec 0.5.2",
  "fatality",
- "futures",
+ "futures 0.3.25",
  "indexmap",
  "parity-scale-codec",
  "polkadot-node-network-protocol",
@@ -7810,11 +7928,20 @@ dependencies = [
  "coarsetime",
  "crossbeam-queue",
  "derive_more",
- "futures",
+ "futures 0.3.25",
  "futures-timer",
  "nanorand",
  "thiserror",
  "tracing",
+]
+
+[[package]]
+name = "proc-macro-crate"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1d6ea3c4595b96363c13943497db34af4460fb474a95c43f4446ad341b8c9785"
+dependencies = [
+ "toml",
 ]
 
 [[package]]
@@ -8441,7 +8568,7 @@ version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "322c53fd76a18698f1c27381d58091de3a043d356aa5bd0d510608b565f469a0"
 dependencies = [
- "futures",
+ "futures 0.3.25",
  "log",
  "netlink-packet-route",
  "netlink-proto",
@@ -8596,7 +8723,7 @@ version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "26338f5e09bb721b85b135ea05af7767c90b52f6de4f087d4f4a3a9d64e7dc04"
 dependencies = [
- "futures",
+ "futures 0.3.25",
  "pin-project",
  "static_assertions",
 ]
@@ -8633,7 +8760,7 @@ version = "0.10.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.37#946507ba9ef13e263534176b7b74e26fc56efbd4"
 dependencies = [
  "async-trait",
- "futures",
+ "futures 0.3.25",
  "futures-timer",
  "ip_network",
  "libp2p",
@@ -8659,7 +8786,7 @@ name = "sc-basic-authorship"
 version = "0.10.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.37#946507ba9ef13e263534176b7b74e26fc56efbd4"
 dependencies = [
- "futures",
+ "futures 0.3.25",
  "futures-timer",
  "log",
  "parity-scale-codec",
@@ -8713,7 +8840,7 @@ name = "sc-chain-spec-derive"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.37#946507ba9ef13e263534176b7b74e26fc56efbd4"
 dependencies = [
- "proc-macro-crate",
+ "proc-macro-crate 1.3.0",
  "proc-macro2",
  "quote",
  "syn",
@@ -8728,7 +8855,7 @@ dependencies = [
  "chrono",
  "clap",
  "fdlimit",
- "futures",
+ "futures 0.3.25",
  "libp2p",
  "log",
  "names",
@@ -8765,7 +8892,7 @@ version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.37#946507ba9ef13e263534176b7b74e26fc56efbd4"
 dependencies = [
  "fnv",
- "futures",
+ "futures 0.3.25",
  "log",
  "parity-scale-codec",
  "parking_lot 0.12.1",
@@ -8816,7 +8943,7 @@ version = "0.10.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.37#946507ba9ef13e263534176b7b74e26fc56efbd4"
 dependencies = [
  "async-trait",
- "futures",
+ "futures 0.3.25",
  "futures-timer",
  "libp2p",
  "log",
@@ -8841,7 +8968,7 @@ version = "0.10.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.37#946507ba9ef13e263534176b7b74e26fc56efbd4"
 dependencies = [
  "async-trait",
- "futures",
+ "futures 0.3.25",
  "log",
  "parity-scale-codec",
  "sc-block-builder",
@@ -8871,7 +8998,7 @@ source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.37#94
 dependencies = [
  "async-trait",
  "fork-tree",
- "futures",
+ "futures 0.3.25",
  "log",
  "merlin",
  "num-bigint",
@@ -8907,7 +9034,7 @@ name = "sc-consensus-babe-rpc"
 version = "0.10.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.37#946507ba9ef13e263534176b7b74e26fc56efbd4"
 dependencies = [
- "futures",
+ "futures 0.3.25",
  "jsonrpsee",
  "sc-consensus-babe",
  "sc-consensus-epochs",
@@ -8943,7 +9070,7 @@ version = "0.10.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.37#946507ba9ef13e263534176b7b74e26fc56efbd4"
 dependencies = [
  "async-trait",
- "futures",
+ "futures 0.3.25",
  "futures-timer",
  "log",
  "parity-scale-codec",
@@ -9038,7 +9165,7 @@ dependencies = [
  "dyn-clone",
  "finality-grandpa",
  "fork-tree",
- "futures",
+ "futures 0.3.25",
  "futures-timer",
  "log",
  "parity-scale-codec",
@@ -9073,7 +9200,7 @@ version = "0.10.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.37#946507ba9ef13e263534176b7b74e26fc56efbd4"
 dependencies = [
  "finality-grandpa",
- "futures",
+ "futures 0.3.25",
  "jsonrpsee",
  "log",
  "parity-scale-codec",
@@ -9093,7 +9220,7 @@ version = "0.10.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.37#946507ba9ef13e263534176b7b74e26fc56efbd4"
 dependencies = [
  "ansi_term",
- "futures",
+ "futures 0.3.25",
  "futures-timer",
  "log",
  "sc-client-api",
@@ -9129,7 +9256,7 @@ dependencies = [
  "bytes",
  "either",
  "fnv",
- "futures",
+ "futures 0.3.25",
  "futures-timer",
  "ip_network",
  "libp2p",
@@ -9165,7 +9292,7 @@ version = "0.10.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.37#946507ba9ef13e263534176b7b74e26fc56efbd4"
 dependencies = [
  "cid",
- "futures",
+ "futures 0.3.25",
  "libp2p",
  "log",
  "prost",
@@ -9186,7 +9313,7 @@ dependencies = [
  "async-trait",
  "bitflags",
  "bytes",
- "futures",
+ "futures 0.3.25",
  "futures-timer",
  "libp2p",
  "linked_hash_set",
@@ -9210,7 +9337,7 @@ version = "0.10.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.37#946507ba9ef13e263534176b7b74e26fc56efbd4"
 dependencies = [
  "ahash",
- "futures",
+ "futures 0.3.25",
  "futures-timer",
  "libp2p",
  "log",
@@ -9228,7 +9355,7 @@ version = "0.10.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.37#946507ba9ef13e263534176b7b74e26fc56efbd4"
 dependencies = [
  "array-bytes 4.2.0",
- "futures",
+ "futures 0.3.25",
  "libp2p",
  "log",
  "parity-scale-codec",
@@ -9251,7 +9378,7 @@ dependencies = [
  "array-bytes 4.2.0",
  "async-trait",
  "fork-tree",
- "futures",
+ "futures 0.3.25",
  "libp2p",
  "log",
  "lru",
@@ -9281,7 +9408,7 @@ version = "0.10.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.37#946507ba9ef13e263534176b7b74e26fc56efbd4"
 dependencies = [
  "array-bytes 4.2.0",
- "futures",
+ "futures 0.3.25",
  "libp2p",
  "log",
  "parity-scale-codec",
@@ -9302,7 +9429,7 @@ dependencies = [
  "array-bytes 4.2.0",
  "bytes",
  "fnv",
- "futures",
+ "futures 0.3.25",
  "futures-timer",
  "hyper",
  "hyper-rustls",
@@ -9329,7 +9456,7 @@ name = "sc-peerset"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.37#946507ba9ef13e263534176b7b74e26fc56efbd4"
 dependencies = [
- "futures",
+ "futures 0.3.25",
  "libp2p",
  "log",
  "sc-utils",
@@ -9351,7 +9478,7 @@ name = "sc-rpc"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.37#946507ba9ef13e263534176b7b74e26fc56efbd4"
 dependencies = [
- "futures",
+ "futures 0.3.25",
  "jsonrpsee",
  "log",
  "parity-scale-codec",
@@ -9415,7 +9542,7 @@ version = "0.10.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.37#946507ba9ef13e263534176b7b74e26fc56efbd4"
 dependencies = [
  "array-bytes 4.2.0",
- "futures",
+ "futures 0.3.25",
  "futures-util",
  "hex",
  "jsonrpsee",
@@ -9443,7 +9570,7 @@ dependencies = [
  "async-trait",
  "directories",
  "exit-future",
- "futures",
+ "futures 0.3.25",
  "futures-timer",
  "jsonrpsee",
  "log",
@@ -9535,7 +9662,7 @@ name = "sc-sysinfo"
 version = "6.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.37#946507ba9ef13e263534176b7b74e26fc56efbd4"
 dependencies = [
- "futures",
+ "futures 0.3.25",
  "libc",
  "log",
  "rand 0.8.5",
@@ -9555,7 +9682,7 @@ version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.37#946507ba9ef13e263534176b7b74e26fc56efbd4"
 dependencies = [
  "chrono",
- "futures",
+ "futures 0.3.25",
  "libp2p",
  "log",
  "parking_lot 0.12.1",
@@ -9604,7 +9731,7 @@ name = "sc-tracing-proc-macro"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.37#946507ba9ef13e263534176b7b74e26fc56efbd4"
 dependencies = [
- "proc-macro-crate",
+ "proc-macro-crate 1.3.0",
  "proc-macro2",
  "quote",
  "syn",
@@ -9616,7 +9743,7 @@ version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.37#946507ba9ef13e263534176b7b74e26fc56efbd4"
 dependencies = [
  "async-trait",
- "futures",
+ "futures 0.3.25",
  "futures-timer",
  "linked-hash-map",
  "log",
@@ -9642,7 +9769,7 @@ version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.37#946507ba9ef13e263534176b7b74e26fc56efbd4"
 dependencies = [
  "async-trait",
- "futures",
+ "futures 0.3.25",
  "log",
  "serde",
  "sp-blockchain",
@@ -9656,7 +9783,7 @@ version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.37#946507ba9ef13e263534176b7b74e26fc56efbd4"
 dependencies = [
  "backtrace",
- "futures",
+ "futures 0.3.25",
  "futures-timer",
  "lazy_static",
  "log",
@@ -9684,7 +9811,7 @@ version = "2.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "303959cf613a6f6efd19ed4b4ad5bf79966a13352716299ad532cfb115f4205c"
 dependencies = [
- "proc-macro-crate",
+ "proc-macro-crate 1.3.0",
  "proc-macro2",
  "quote",
  "syn",
@@ -9758,7 +9885,7 @@ dependencies = [
  "rand 0.8.5",
  "substring",
  "thiserror",
- "url",
+ "url 2.3.1",
 ]
 
 [[package]]
@@ -10069,7 +10196,7 @@ dependencies = [
  "base64 0.13.1",
  "bytes",
  "flate2",
- "futures",
+ "futures 0.3.25",
  "http",
  "httparse",
  "log",
@@ -10101,7 +10228,7 @@ version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.37#946507ba9ef13e263534176b7b74e26fc56efbd4"
 dependencies = [
  "blake2",
- "proc-macro-crate",
+ "proc-macro-crate 1.3.0",
  "proc-macro2",
  "quote",
  "syn",
@@ -10193,7 +10320,7 @@ name = "sp-blockchain"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.37#946507ba9ef13e263534176b7b74e26fc56efbd4"
 dependencies = [
- "futures",
+ "futures 0.3.25",
  "log",
  "lru",
  "parity-scale-codec",
@@ -10212,7 +10339,7 @@ version = "0.10.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.37#946507ba9ef13e263534176b7b74e26fc56efbd4"
 dependencies = [
  "async-trait",
- "futures",
+ "futures 0.3.25",
  "log",
  "parity-scale-codec",
  "sp-core",
@@ -10301,7 +10428,7 @@ dependencies = [
  "blake2",
  "dyn-clonable",
  "ed25519-zebra",
- "futures",
+ "futures 0.3.25",
  "hash-db",
  "hash256-std-hasher",
  "impl-serde",
@@ -10427,7 +10554,7 @@ dependencies = [
  "bytes",
  "ed25519",
  "ed25519-dalek",
- "futures",
+ "futures 0.3.25",
  "libsecp256k1",
  "log",
  "parity-scale-codec",
@@ -10461,7 +10588,7 @@ version = "0.13.0"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.37#946507ba9ef13e263534176b7b74e26fc56efbd4"
 dependencies = [
  "async-trait",
- "futures",
+ "futures 0.3.25",
  "merlin",
  "parity-scale-codec",
  "parking_lot 0.12.1",
@@ -10589,7 +10716,7 @@ version = "6.0.0"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.37#946507ba9ef13e263534176b7b74e26fc56efbd4"
 dependencies = [
  "Inflector",
- "proc-macro-crate",
+ "proc-macro-crate 1.3.0",
  "proc-macro2",
  "quote",
  "syn",
@@ -10942,7 +11069,7 @@ dependencies = [
  "subtle",
  "thiserror",
  "tokio",
- "url",
+ "url 2.3.1",
  "webrtc-util",
 ]
 
@@ -10973,7 +11100,7 @@ version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.37#946507ba9ef13e263534176b7b74e26fc56efbd4"
 dependencies = [
  "frame-system-rpc-runtime-api",
- "futures",
+ "futures 0.3.25",
  "jsonrpsee",
  "log",
  "parity-scale-codec",
@@ -11505,7 +11632,7 @@ version = "0.9.37"
 source = "git+https://github.com/paritytech/polkadot?branch=release-v0.9.37#645723987cf9662244be8faf4e9b63e8b9a1b3a3"
 dependencies = [
  "expander 0.0.6",
- "proc-macro-crate",
+ "proc-macro-crate 1.3.0",
  "proc-macro2",
  "quote",
  "syn",
@@ -11600,7 +11727,7 @@ dependencies = [
  "tinyvec",
  "tokio",
  "tracing",
- "url",
+ "url 2.3.1",
 ]
 
 [[package]]
@@ -11674,7 +11801,7 @@ checksum = "4712ee30d123ec7ae26d1e1b218395a16c87cdbaf4b3925d170d684af62ea5e8"
 dependencies = [
  "async-trait",
  "base64 0.13.1",
- "futures",
+ "futures 0.3.25",
  "log",
  "md-5",
  "rand 0.8.5",
@@ -11784,13 +11911,24 @@ checksum = "a156c684c91ea7d62626509bce3cb4e1d9ed5c4d978f7b4352658f96a4c26b4a"
 
 [[package]]
 name = "url"
+version = "1.7.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dd4e7c0d531266369519a4aa4f399d748bd37043b00bde1e4ff1f60a120b355a"
+dependencies = [
+ "idna 0.1.5",
+ "matches",
+ "percent-encoding 1.0.1",
+]
+
+[[package]]
+name = "url"
 version = "2.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0d68c799ae75762b8c3fe375feb6600ef5602c883c5d21eb51c09f22b83c4643"
 dependencies = [
  "form_urlencoded",
  "idna 0.3.0",
- "percent-encoding",
+ "percent-encoding 2.2.0",
 ]
 
 [[package]]
@@ -12002,7 +12140,7 @@ version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "be0ecb0db480561e9a7642b5d3e4187c128914e58aa84330b9493e3eb68c5e7f"
 dependencies = [
- "futures",
+ "futures 0.3.25",
  "js-sys",
  "parking_lot 0.11.2",
  "pin-utils",
@@ -12291,7 +12429,7 @@ dependencies = [
  "time 0.3.17",
  "tokio",
  "turn",
- "url",
+ "url 2.3.1",
  "waitgroup",
  "webrtc-data",
  "webrtc-dtls",
@@ -12376,7 +12514,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "turn",
- "url",
+ "url 2.3.1",
  "uuid",
  "waitgroup",
  "webrtc-mdns",
@@ -12924,7 +13062,7 @@ version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e5d9ba232399af1783a58d8eb26f6b5006fbefe2dc9ef36bd283324792d03ea5"
 dependencies = [
- "futures",
+ "futures 0.3.25",
  "log",
  "nohash-hasher",
  "parking_lot 0.12.1",

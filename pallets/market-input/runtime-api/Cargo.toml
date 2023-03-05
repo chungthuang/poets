@@ -1,0 +1,20 @@
+[package]
+name = "market-input-runtime-api"
+version = "0.1.0"
+edition = "2021"
+authors = ['Chung-Ting Huang']
+repository = 'https://github.com/chungthuang/energy-trading-parachain'
+description = "A Pallet that implements a basic market input"
+license = "GPL-3.0-or-later"
+
+[dependencies]
+sp-api = { git = "https://github.com/paritytech/substrate", default-features = false, "branch" = "polkadot-v0.9.37" }
+
+[dev-dependencies]
+serde_json = "1.0"
+
+[features]
+default = ["std"]
+std = [
+	"sp-api/std",
+]

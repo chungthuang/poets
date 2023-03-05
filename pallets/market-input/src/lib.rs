@@ -134,6 +134,7 @@ pub mod pallet {
 		/// Returns the non-negotiable weight consumed in the block.
 		/// https://substrate.stackexchange.com/questions/4371/how-to-weight-on-initialize
 		fn on_initialize(block_number: T::BlockNumber) -> Weight {
+			log::info!("initializing block");
 			if block_number.try_into().unwrap_or(0) % T::OpenPeriod::get() == 0 {
 				let new_stage = match <Stage<T>>::get() {
 					Some(MARKET_STAGE_OPEN) => {
@@ -157,6 +158,7 @@ pub mod pallet {
 		/// Validators will generate transactions that feed results of offchain computations back on chain
 		/// called after every block import
 		fn offchain_worker(block_number: T::BlockNumber) {
+			log::info!("start offchain worker");
 			if block_number.try_into().unwrap_or(0) % T::OpenPeriod::get() == 0 {
 				// Beginning of clearing stage
 				if <Stage<T>>::get() == Some(MARKET_STAGE_CLEARING) {
@@ -266,5 +268,11 @@ pub mod pallet {
 			}
 			Ok(())
 		}
+	}
+}
+
+impl<T: Config> Pallet<T> {
+	pub fn get_sum() -> u32 {
+		300
 	}
 }
