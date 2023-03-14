@@ -3,9 +3,7 @@
 
 pub use pallet::*;
 use codec::{Decode, Encode};
-use frame_support::storage::bounded_vec::BoundedVec;
-use frame_support::traits::ConstU32;
-use serde::{Deserialize, Serialize};
+use sp_std::vec::Vec;
 
 #[cfg(test)]
 mod tests;
@@ -274,24 +272,20 @@ pub mod pallet {
 	}
 }
 
-#[derive(Decode, Encode, Deserialize, Serialize)]
+#[derive(Encode, Decode)]
 pub struct MarketSubmissions {
-	//pub bids: BoundedVec<Submission, ConstU32<100>>,
-	//pub asks: BoundedVec<Submission, ConstU32<100>>,
+	pub bids: Vec<(u64, u64)>,
+	pub asks: Vec<(u64, u64)>,
 	pub stage: u64
 }
 
-#[derive(Decode, Encode, Deserialize, Serialize)]
-pub struct Submission {
-	pub quantity: u64,
-	pub price: u64,
-}
 
+// https://crates.parity.io/src/sc_rpc_api/system/mod.rs.html
 impl<T: Config> Pallet<T> {
-	pub fn get_submissions() -> MarketSubmissions {
+	pub fn get_submissions() ->  MarketSubmissions {
 		MarketSubmissions {
-			//bids: BoundedVec::default(),
-			//asks: BoundedVec::default(),
+			bids: Vec::new(),
+			asks: Vec::new(),
 			stage: <Stage<T>>::get().unwrap_or_default(),
 		}
 	}

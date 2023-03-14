@@ -4614,7 +4614,6 @@ dependencies = [
  "jsonrpc-core",
  "jsonrpc-core-client",
  "jsonrpc-derive",
- "market-input",
  "market-input-runtime-api",
  "parity-scale-codec",
  "serde",

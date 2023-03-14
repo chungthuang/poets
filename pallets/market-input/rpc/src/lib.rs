@@ -7,7 +7,14 @@ use sp_blockchain::HeaderBackend;
 use sp_runtime::{generic::BlockId, traits::Block as BlockT};
 use std::sync::Arc;
 use market_input_runtime_api::MarketStateApi as MarketStateRuntimeApi;
-use market_input::MarketSubmissions;
+use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize)]
+pub struct MarketSubmissions {
+	pub bids: Vec<(u64, u64)>,
+	pub asks: Vec<(u64, u64)>,
+	pub stage: u64
+}
 
 #[rpc]
 pub trait MarketStateApi<BlockHash> {
@@ -66,11 +73,17 @@ where
 			// If the block hash is not supplied assume the best block.
 			self.client.info().best_hash));
 
-		let runtime_api_result = api.get_submissions(&at);
-		runtime_api_result.map_err(|e| RpcError {
-			code: ErrorCode::ServerError(Error::RuntimeError.into()),
-			message: Error::RuntimeError.message(),
-			data: Some(format!("{:?}", e).into()),
-		})
+		match api.get_submissions(&at) {
+			Ok(s) => Ok(MarketSubmissions {
+				bids: s.bids,
+				asks: s.asks,
+				stage: s.stage,
+			}),
+			Err(e) => Err(RpcError {
+				code: ErrorCode::ServerError(Error::RuntimeError.into()),
+				message: Error::RuntimeError.message(),
+				data: Some(format!("{:?}", e).into()),
+			})
+		}
 	}
 }

@@ -14,7 +14,7 @@ serde = { version = "1.0", default-features = false }
 sp-api = { git = "https://github.com/paritytech/substrate", default-features = false, "branch" = "polkadot-v0.9.37" }
 sp-std = { git = "https://github.com/paritytech/substrate", default-features = false, "branch" = "polkadot-v0.9.37" }
 
-market-input = { path = ".." }
+market-input = { path = "../" }
 
 [dev-dependencies]
 serde_json = "1.0"

@@ -21,7 +21,6 @@ sp-rpc = { git = "https://github.com/paritytech/substrate", default-features = f
 sp-runtime = { git = "https://github.com/paritytech/substrate", default-features = false, "branch" = "polkadot-v0.9.37" }
 
 # local packages
-market-input = { version = "0.1.0", path = "..", default-features = false }
 market-input-runtime-api = { version = "0.1.0", path = "../runtime-api", default-features = false }
 
 [features]
