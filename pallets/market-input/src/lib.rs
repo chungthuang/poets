@@ -283,9 +283,17 @@ pub struct MarketSubmissions {
 // https://crates.parity.io/src/sc_rpc_api/system/mod.rs.html
 impl<T: Config> Pallet<T> {
 	pub fn get_submissions() ->  MarketSubmissions {
+		let mut bids: Vec<(u64, u64)> = Vec::new();
+		for (_account, (quantity, price)) in  <Bids<T>>::iter() {
+			bids.push((quantity, price));
+		}
+		let mut asks: Vec<(u64, u64)> = Vec::new();
+		for (_account, (quantity, price)) in  <Asks<T>>::iter() {
+			asks.push((quantity, price));
+		}
 		MarketSubmissions {
-			bids: Vec::new(),
-			asks: Vec::new(),
+			bids,
+			asks,
 			stage: <Stage<T>>::get().unwrap_or_default(),
 		}
 	}
