@@ -272,7 +272,7 @@ pub mod pallet {
 	}
 }
 
-#[derive(Encode, Decode)]
+#[derive(Default, Encode, Decode)]
 pub struct MarketSubmissions {
 	pub bids: Vec<(u64, u64)>,
 	pub asks: Vec<(u64, u64)>,

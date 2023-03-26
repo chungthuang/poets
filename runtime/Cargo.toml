@@ -24,6 +24,7 @@ smallvec = "1.10.0"
 # Local
 pallet-template = { path = "../pallets/template", default-features = false }
 market-input = { path = "../pallets/market-input", default-features = false }
+market-input-runtime-api = { path = "../pallets/market-input/runtime-api", default-features = false }
 
 # Substrate
 frame-benchmarking = { git = "https://github.com/paritytech/substrate", default-features = false, optional = true, "branch" = "polkadot-v0.9.37" }
@@ -95,6 +96,7 @@ std = [
 	"frame-system-rpc-runtime-api/std",
 	"frame-system/std",
 	"market-input/std",
+	"market-input-runtime-api/std",
 	"pallet-aura/std",
 	"pallet-authorship/std",
 	"pallet-balances/std",
