@@ -1,7 +1,10 @@
 //! RPC interface for the transaction payment module.
 
-use jsonrpc_core::{Error as RpcError, ErrorCode, Result};
-use jsonrpc_derive::rpc;
+use jsonrpsee::{
+    core::{Error as JsonRpseeError, RpcResult},
+    proc_macros::rpc,
+    types::error::{CallError, ErrorObject},
+};
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::HeaderBackend;
 use sp_runtime::{generic::BlockId, traits::Block as BlockT};
@@ -16,10 +19,10 @@ pub struct MarketSubmissions {
 	pub stage: u64
 }
 
-#[rpc]
+#[rpc(client, server)]
 pub trait MarketStateApi<BlockHash> {
-	#[rpc(name = "marketInput_getSubmissions")]
-	fn get_submissions(&self, at: Option<BlockHash>) -> Result<MarketSubmissions>;
+	#[method(name = "marketState_getSubmissions")]
+	fn get_submissions(&self, at: Option<BlockHash>) -> RpcResult<MarketSubmissions>;
 }
 
 /// A struct that implements the `MarketStateApi`.
@@ -38,52 +41,33 @@ impl<C, M> MarketState<C, M> {
 	}
 }
 
-/// Error type of this RPC api.
-pub enum Error {
-	/// The transaction was not decodable.
- 	RuntimeError,
-}
-impl From<Error> for i64 {
- 	fn from(e: Error) -> i64 {
- 		match e {
- 			Error::RuntimeError => 1000,
- 		}
- 	}
-}
-
-impl Error {
-	fn message(&self) -> String {
-		match self {
-			Self::RuntimeError => "Runtime API error".to_owned(),
-		}
-	}
-}
-
-impl<C, Block> MarketStateApi<<Block as BlockT>::Hash> for MarketState<C, Block>
+impl<C, Block> MarketStateApiServer<<Block as BlockT>::Hash> for MarketState<C, Block>
 where
-	Block: BlockT,
-	C: Send + Sync + 'static,
-	C: ProvideRuntimeApi<Block>,
-	C: HeaderBackend<Block>,
-	C::Api: MarketStateRuntimeApi<Block>,
+    Block: BlockT,
+    C: Send + Sync + 'static + ProvideRuntimeApi<Block> + HeaderBackend<Block>,
+    C::Api: MarketStateRuntimeApi<Block>,
 {
-	fn get_submissions(&self, at: Option<<Block as BlockT>::Hash>) -> Result<MarketSubmissions> {
-		let api = self.client.runtime_api();
-		let at = BlockId::hash(at.unwrap_or_else(||
-			// If the block hash is not supplied assume the best block.
-			self.client.info().best_hash));
+    fn get_submissions(&self, at: Option<<Block as BlockT>::Hash>) -> RpcResult<MarketSubmissions> {
+        let api = self.client.runtime_api();
+		// If the block hash is not supplied assume the best block.
+        let at = BlockId::hash(at.unwrap_or_else(||self.client.info().best_hash));
 
-		match api.get_submissions(&at) {
-			Ok(s) => Ok(MarketSubmissions {
+        api.get_submissions(&at).map(|s| MarketSubmissions {
 				bids: s.bids,
 				asks: s.asks,
 				stage: s.stage,
-			}),
-			Err(e) => Err(RpcError {
-				code: ErrorCode::ServerError(Error::RuntimeError.into()),
-				message: Error::RuntimeError.message(),
-				data: Some(format!("{:?}", e).into()),
-			})
-		}
-	}
+		}).map_err(runtime_error_into_rpc_err)
+    }
+}
+
+const RUNTIME_ERROR: i32 = 1;
+
+/// Converts a runtime trap into an RPC error.
+fn runtime_error_into_rpc_err(err: impl std::fmt::Debug) -> JsonRpseeError {
+    CallError::Custom(ErrorObject::owned(
+        RUNTIME_ERROR,
+        "Runtime error",
+        Some(format!("{:?}", err)),
+    ))
+    .into()
 }

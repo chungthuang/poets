@@ -641,6 +641,12 @@ impl_runtime_apis! {
 		}
 	}
 
+	impl market_input_runtime_api::MarketStateApi<Block> for Runtime {
+		fn get_submissions() -> market_input::MarketSubmissions {
+			MarketInputPallet::get_submissions()
+		}
+	}
+
 	impl cumulus_primitives_core::CollectCollationInfo<Block> for Runtime {
 		fn collect_collation_info(header: &<Block as BlockT>::Header) -> cumulus_primitives_core::CollationInfo {
 			ParachainSystem::collect_collation_info(header)

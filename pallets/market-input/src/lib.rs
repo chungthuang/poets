@@ -272,7 +272,7 @@ pub mod pallet {
 	}
 }
 
-#[derive(Encode, Decode)]
+#[derive(Default, Encode, Decode)]
 pub struct MarketSubmissions {
 	pub bids: Vec<(u64, u64)>,
 	pub asks: Vec<(u64, u64)>,
@@ -280,7 +280,6 @@ pub struct MarketSubmissions {
 }
 
 
-// https://crates.parity.io/src/sc_rpc_api/system/mod.rs.html
 impl<T: Config> Pallet<T> {
 	pub fn get_submissions() ->  MarketSubmissions {
 		let mut bids: Vec<(u64, u64)> = Vec::new();

@@ -21,7 +21,7 @@ sp-std = { git = "https://github.com/paritytech/substrate", default-features = f
 
 serde = { version = "1.0", default-features = false }
 
-log = "0.4.17"
+log = { version = "0.4.17", default-features = false }
 
 [dev-dependencies]
 serde = "1.0"
