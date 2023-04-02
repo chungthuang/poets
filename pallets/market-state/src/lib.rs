@@ -13,7 +13,7 @@ pub mod pallet {
 	use frame_support::storage::PrefixIterator;
 	use frame_support::{dispatch::DispatchResultWithPostInfo, pallet_prelude::*};
 	use frame_system::pallet_prelude::*;
-	use sp_std::vec::Vec;
+	use sp_std::default::Default;
 
 	type MaxSubmissionEntries = ConstU32<100>;
 
@@ -110,6 +110,8 @@ pub mod pallet {
 		BidTooLow,
 		/// Ask is above auction price
 		AskTooHigh,
+		/// Exceed maximum number of submissions
+		TooManySubmissions,
 	}
 
 	#[pallet::call]
@@ -153,13 +155,19 @@ pub mod pallet {
 		/// Submits a solution. Will be rejected if validation fails
 		#[pallet::call_index(2)]
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
-		pub fn submit_solution(origin: OriginFor<T>, auction_price: u64, accepted_bids: BoundedVec<T::AccountId, MaxSubmissionEntries>, accepted_asks: BoundedVec<T::AccountId, MaxSubmissionEntries>) -> DispatchResultWithPostInfo {
+		pub fn submit_solution(
+			origin: OriginFor<T>,
+			auction_price: u64,
+			accepted_bids: BoundedVec<T::AccountId, MaxSubmissionEntries>,
+			accepted_asks: BoundedVec<T::AccountId, MaxSubmissionEntries>,
+		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 
 			if <Stage<T>>::get() != Some(MARKET_STAGE_CLEARING) {
 				return Err(Error::<T>::WrongMarketStage.into())
 			}
-			let social_welfare = Self::validate_solution(auction_price, &accepted_bids, &accepted_asks)?;
+
+			let social_welfare = Self::validate_solution( auction_price, &accepted_bids, &accepted_asks)?;
 			if let Some(current_solution) = <BestSolution<T>>::get() {
 				if social_welfare > current_solution.1 {
 					<BestSolution<T>>::set(Some((sender, social_welfare, auction_price, accepted_bids, accepted_asks)));
@@ -218,29 +226,24 @@ pub mod pallet {
 		pub(crate) price: u64,
 	}
 
-	pub(crate) struct FulfilledOrder<T:Config> {
-		pub(crate) account: T::AccountId,
-		// TODO: consider partial order
-	}
-
-	pub(crate) struct DoubleAuctionSolution<T: Config> {
+	pub(crate) struct Solution<T: Config> {
 		pub(crate) auction_price: u64,
-		pub(crate) fulfilled_bids: Vec<FulfilledOrder<T>>,
-		pub(crate) fulfilled_asks: Vec<FulfilledOrder<T>>,
+		pub(crate) accepted_bids: BoundedVec<T::AccountId, MaxSubmissionEntries>,
+		pub(crate) accepted_asks: BoundedVec<T::AccountId, MaxSubmissionEntries>,
 	}
 
 	impl<T: Config> Pallet<T> {
-		fn solve_double_auction() -> Option<DoubleAuctionSolution<T>> {
-			let mut sorted_bids = Self::sort_by_price(<Bids<T>>::iter(), true);
-			let mut sorted_asks = Self::sort_by_price(<Asks<T>>::iter(), false);
-			let mut fulfilled_bids = Vec::new();
-			let mut fulfilled_asks = Vec::new();
+		fn solve_double_auction() -> Result<Option<Solution<T>>, Error<T>> {
+			let mut sorted_bids = Self::sort_by_price(<Bids<T>>::iter(), true)?;
+			let mut sorted_asks = Self::sort_by_price(<Asks<T>>::iter(), false)?;
+			let mut accepted_bids: BoundedVec<T::AccountId, MaxSubmissionEntries> = Default::default();
+			let mut accepted_asks: BoundedVec<T::AccountId, MaxSubmissionEntries> = Default::default();
 			let mut auction_price = 0;
 			let Some(mut bid) = sorted_bids.pop() else {
-				return None;
+				return Ok(None)
 			};
 			let Some(mut ask) = sorted_asks.pop() else {
-				return None;
+				return Ok(None)
 			};
 			loop {
 				if ask.price > bid.price {
@@ -248,24 +251,20 @@ pub mod pallet {
 					break;
 				}
 				if ask.quantity > bid.quantity {
-					fulfilled_bids.push(FulfilledOrder{
-						account: bid.account.clone(),
-					});
+					accepted_bids.try_push(bid.account.clone()).map_err(|_| Error::<T>::TooManySubmissions)?;
 					ask.quantity -= bid.quantity;
 					auction_price = ask.price;
 					let Some(next_bid) = sorted_bids.pop() else {
-						return None;
+						return Ok(None)
 					};
 					bid = next_bid;
 					continue;
 				} else {
-					fulfilled_asks.push(FulfilledOrder{
-						account: ask.account.clone(),
-					});
+					accepted_asks.try_push(ask.account.clone()).map_err(|_| Error::<T>::TooManySubmissions)?;
 					auction_price = ask.price;
 					bid.quantity -= ask.quantity;
 					let Some(next_ask) = sorted_asks.pop() else {
-						return None;
+						return Ok(None)
 					};
 					ask = next_ask;
 					continue;
@@ -274,18 +273,18 @@ pub mod pallet {
 			if ask.price < bid.price && ask.quantity > 0 {
 				// TODO: Consider partial order
 			}
-			if fulfilled_bids.len() == 0 || fulfilled_asks.len() == 0 {
-				return None;
+			if accepted_bids.len() == 0 || accepted_asks.len() == 0 {
+				return Ok(None);
 			}
-			Some(DoubleAuctionSolution{
+			Ok(Some(Solution{
 				auction_price,
-				fulfilled_bids,
-				fulfilled_asks,
-			})
+				accepted_bids,
+				accepted_asks,
+			}))
 		}
 
-		fn sort_by_price(iterator: PrefixIterator<(T::AccountId, QuantityPrice)>, desc: bool) -> Vec<Submission<T>> {
-			let mut sorted: Vec<Submission<T>> = Vec::new();
+		fn sort_by_price(iterator: PrefixIterator<(T::AccountId, QuantityPrice)>, desc: bool) -> Result<BoundedVec<Submission<T>, MaxSubmissionEntries>, Error<T>> {
+			let mut sorted: BoundedVec<Submission<T>, MaxSubmissionEntries> = Default::default();
 			for (account, (quantity, price)) in iterator {
 				let idx = match desc {
 					true => sorted.partition_point(|s| s.price > price),
@@ -296,9 +295,9 @@ pub mod pallet {
 					quantity,
 					price,
 				};
-				sorted.insert(idx, submission);
+				sorted.try_insert(idx, submission).map_err(|_| Error::<T>::TooManySubmissions)?;
 			}
-			sorted
+			Ok(sorted)
 		}
 
 		fn validate_bid_or_ask(quantity: u64, price: u64) -> Result<(), Error<T>> {
