@@ -1,10 +1,10 @@
 [package]
-name = "market-input"
+name = "market-state"
 version = "0.1.0"
 edition = "2021"
 authors = ['Chung-Ting Huang']
 repository = 'https://github.com/chungthuang/energy-trading-parachain'
-description = "A Pallet that implements a basic market input"
+description = "A Pallet that implements a basic market state"
 license = "GPL-3.0-or-later"
 
 [dependencies]
@@ -41,7 +41,5 @@ std = [
 	"frame-benchmarking/std",
 	"frame-support/std",
 	"frame-system/std",
-	"sp-core/std",
-	"sp-std/std",
 ]
 try-runtime = [ "frame-support/try-runtime" ]

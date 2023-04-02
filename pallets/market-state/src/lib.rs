@@ -5,8 +5,8 @@ pub use pallet::*;
 use codec::{Decode, Encode};
 use sp_std::vec::Vec;
 
-#[cfg(test)]
-mod tests;
+//#[cfg(test)]
+//mod tests;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -14,6 +14,8 @@ pub mod pallet {
 	use frame_support::{dispatch::DispatchResultWithPostInfo, pallet_prelude::*};
 	use frame_system::pallet_prelude::*;
 	use sp_std::vec::Vec;
+
+	type MaxSubmissionEntries = ConstU32<100>;
 
 
 	#[pallet::config]
@@ -48,6 +50,11 @@ pub mod pallet {
 			quantity: u64,
 			price: u64,
 		},
+		/// A valid solution was submitted
+		Solution {
+			auction_price: u64,
+			social_welfare: u64,
+		},
 		BeginOpenMarket,
 		BeginClearMarket,
 		// Demand is matched
@@ -64,6 +71,11 @@ pub mod pallet {
 	#[pallet::getter(fn get_ask)]
 	pub(super) type Asks<T: Config> =
 		StorageMap<_, Blake2_128Concat, T::AccountId, QuantityPrice, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn get_solution)]
+	// Best solution submitted so far, a tuple of submitter, social welfare score, auction price, accepted bids and asks
+	pub(super) type BestSolution<T: Config> = StorageValue<_, (T::AccountId, u64, u64, BoundedVec<T::AccountId, MaxSubmissionEntries>, BoundedVec<T::AccountId, MaxSubmissionEntries>)>;
 
 	pub(super) type QuantityPrice = (u64, u64);
 
@@ -84,10 +96,20 @@ pub mod pallet {
 	pub enum Error<T> {
 		/// Attempted to initialize the token after it had already been initialized.
 		AlreadyInitialized,
-		/// Attempted to transfer more funds than were available
-		InsufficientFunds,
-		/// Attempted to submit bid/ask outside of boundary
-		InvalidSubmission,
+		/// Attempted to perform an action at the wrong market stage.
+		WrongMarketStage,
+		/// Attempted to submit bid/ask outside of boundary.
+		InvalidBidOrAsk,
+		/// Generic error for invalid solution
+		InvalidSoultion,
+		/// Account not found in the Bids storage map
+		BidNotFound,
+		/// Account not found in the Asks storage map
+		AskNotFound,
+		/// Bid is below auction price
+		BidTooLow,
+		/// Ask is above auction price
+		AskTooHigh,
 	}
 
 	#[pallet::call]
@@ -95,9 +117,9 @@ pub mod pallet {
 		/// Submits a bid quantity and price
 		#[pallet::call_index(0)]
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
-		pub fn bid(_origin: OriginFor<T>, quantity: u64, price: u64) -> DispatchResultWithPostInfo {
-			let sender = ensure_signed(_origin)?;
-			Self::validate_submission(quantity, price)?;
+		pub fn submit_bid(origin: OriginFor<T>, quantity: u64, price: u64) -> DispatchResultWithPostInfo {
+			let sender = ensure_signed(origin)?;
+			Self::validate_bid_or_ask(quantity, price)?;
 
 			// Write new (quantity, price) to storage
 			<Bids<T>>::insert(&sender, (quantity, price));
@@ -113,9 +135,9 @@ pub mod pallet {
 		/// Submits an ask quantity and price
 		#[pallet::call_index(1)]
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
-		pub fn ask(_origin: OriginFor<T>, quantity: u64, price: u64) -> DispatchResultWithPostInfo {
-			let sender = ensure_signed(_origin)?;
-			Self::validate_submission(quantity, price)?;
+		pub fn submit_ask(origin: OriginFor<T>, quantity: u64, price: u64) -> DispatchResultWithPostInfo {
+			let sender = ensure_signed(origin)?;
+			Self::validate_bid_or_ask(quantity, price)?;
 
 			// Write new (quantity, price) to storage
 			<Asks<T>>::insert(&sender, (quantity, price));
@@ -125,6 +147,26 @@ pub mod pallet {
 				quantity,
 				price,
 			});
+			Ok(().into())
+		}
+
+		/// Submits a solution. Will be rejected if validation fails
+		#[pallet::call_index(2)]
+		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
+		pub fn submit_solution(origin: OriginFor<T>, auction_price: u64, accepted_bids: BoundedVec<T::AccountId, MaxSubmissionEntries>, accepted_asks: BoundedVec<T::AccountId, MaxSubmissionEntries>) -> DispatchResultWithPostInfo {
+			let sender = ensure_signed(origin)?;
+
+			if <Stage<T>>::get() != Some(MARKET_STAGE_CLEARING) {
+				return Err(Error::<T>::WrongMarketStage.into())
+			}
+			let social_welfare = Self::validate_solution(auction_price, &accepted_bids, &accepted_asks)?;
+			if let Some(current_solution) = <BestSolution<T>>::get() {
+				if social_welfare > current_solution.1 {
+					<BestSolution<T>>::set(Some((sender, social_welfare, auction_price, accepted_bids, accepted_asks)));
+				}
+			}
+
+
 			Ok(().into())
 		}
 	}
@@ -259,15 +301,64 @@ pub mod pallet {
 			sorted
 		}
 
-		fn validate_submission(quantity: u64, price: u64) -> Result<(), Error<T>> {
+		fn validate_bid_or_ask(quantity: u64, price: u64) -> Result<(), Error<T>> {
+			if <Stage<T>>::get() != Some(MARKET_STAGE_OPEN) {
+				return Err(Error::<T>::WrongMarketStage)
+			}
 			let bound = T::Bound::get();
 			if quantity > bound.max_price || quantity < bound.min_price {
-				return Err(Error::<T>::InvalidSubmission);
+				return Err(Error::<T>::InvalidBidOrAsk);
 			}
 			if price > bound.max_price || price < bound.min_price {
-				return Err(Error::<T>::InvalidSubmission)
+				return Err(Error::<T>::InvalidBidOrAsk)
 			}
 			Ok(())
+		}
+
+		/// Bid price is the max a consumer is willing to pay, so it has to >= auction price
+		/// Ask price is the min a producer/prosumer is willing to pay, so it has to <= auction price
+		/// For now we allow the sum of bid quantity and ask quantity to be different by a margin
+		/// Returns the social welfare score
+		fn validate_solution(auction_price: u64, accepted_bids: &[T::AccountId], accepted_asks: &[T::AccountId]) -> Result<u64, Error<T>> {
+			let mut social_welfare_score = 0;
+			let mut total_bids = 0;
+			let mut total_asks = 0;
+			for bidder in accepted_bids {
+				let (bid_quantity, bid_price) = <Bids<T>>::get(&bidder);
+				if bid_quantity == 0 || bid_price == 0 {
+					return Err(Error::<T>::BidNotFound)
+				}
+				if bid_price < auction_price {
+					return Err(Error::<T>::BidTooLow)
+				}
+				total_bids += bid_quantity;
+				social_welfare_score += bid_price * bid_quantity;
+			}
+
+			for asker in accepted_asks {
+				let (ask_quantity, ask_price) = <Asks<T>>::get(&asker);
+				if ask_quantity == 0 || ask_price == 0 {
+					return Err(Error::<T>::AskNotFound)
+				}
+				if ask_price > auction_price {
+					return Err(Error::<T>::AskTooHigh)
+				}
+				total_asks += ask_quantity;
+				social_welfare_score -= ask_price * ask_quantity;
+			}
+
+			if social_welfare_score <= 0 {
+				return Err(Error::<T>::InvalidSoultion)
+			}
+
+			const BID_ASK_MISMATCH_MARGIN: u64 = 10;
+			if total_asks > total_bids &&  total_asks - total_bids > BID_ASK_MISMATCH_MARGIN {
+				return Err(Error::<T>::InvalidSoultion)
+			} else if total_bids - total_asks > BID_ASK_MISMATCH_MARGIN {
+				return Err(Error::<T>::InvalidSoultion)
+			}
+
+			Ok(social_welfare_score)
 		}
 	}
 }

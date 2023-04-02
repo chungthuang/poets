@@ -1,6 +1,6 @@
 //! RPC interface for the transaction payment module.
 
-pub use market_input_runtime_api::MarketStateApi as MarketStateRuntimeApi;
+pub use market_state_runtime_api::MarketStateApi as MarketStateRuntimeApi;
 
 use jsonrpsee::{
     core::{Error as JsonRpseeError, RpcResult},

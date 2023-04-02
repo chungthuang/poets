@@ -1,10 +1,10 @@
 [package]
-name = "market-input-rpc"
+name = "market-state-rpc"
 version = "0.1.0"
 edition = "2021"
 authors = ['Chung-Ting Huang']
 repository = 'https://github.com/chungthuang/energy-trading-parachain'
-description = "A Pallet that implements a basic market input"
+description = "A Pallet that implements a basic market state"
 license = "GPL-3.0-or-later"
 
 [dependencies]
@@ -20,7 +20,7 @@ sp-rpc = { git = "https://github.com/paritytech/substrate", default-features = f
 sp-runtime = { git = "https://github.com/paritytech/substrate", default-features = false, "branch" = "polkadot-v0.9.37" }
 
 # local packages
-market-input-runtime-api = { version = "0.1.0", path = "../runtime-api", default-features = false }
+market-state-runtime-api = { version = "0.1.0", path = "../runtime-api", default-features = false }
 
 [features]
 default = ["std"]
@@ -28,5 +28,5 @@ std = [
   "serde",
   "sp-api/std",
   "sp-runtime/std",
-  "market-input-runtime-api/std"
+  "market-state-runtime-api/std"
 ]
