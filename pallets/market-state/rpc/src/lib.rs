@@ -1,5 +1,7 @@
 //! RPC interface for the transaction payment module.
 
+pub use market_input_runtime_api::MarketStateApi as MarketStateRuntimeApi;
+
 use jsonrpsee::{
     core::{Error as JsonRpseeError, RpcResult},
     proc_macros::rpc,
@@ -9,7 +11,6 @@ use sp_api::ProvideRuntimeApi;
 use sp_blockchain::HeaderBackend;
 use sp_runtime::{generic::BlockId, traits::Block as BlockT};
 use std::sync::Arc;
-use market_input_runtime_api::MarketStateApi as MarketStateRuntimeApi;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
