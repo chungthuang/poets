@@ -5,7 +5,7 @@ use std::{sync::Arc, time::Duration};
 
 use cumulus_client_cli::CollatorOptions;
 // Local Runtime Types
-use parachain_template_runtime::{opaque::Block, Hash, RuntimeApi};
+use parachain_template_runtime::{opaque::Block, Hash, RuntimeApi, market_state};
 
 // Cumulus Imports
 use cumulus_client_consensus_aura::{AuraConsensus, BuildAuraConsensusParams, SlotProportion};
@@ -190,6 +190,14 @@ async fn start_node_impl(
 		})?;
 
 	if parachain_config.offchain_worker.enabled {
+		let keystore = params.keystore_container.sync_keystore();
+		// TODO: Remove this and inject keys via RPC calls to `author_insertKey`
+		sp_keystore::SyncCryptoStore::sr25519_generate_new(
+			&*keystore,
+			market_state::KEY_TYPE,
+			Some("//Alice"),
+		)
+		.expect("Creating key with account Alice should succeed.");
 		sc_service::build_offchain_workers(
 			&parachain_config,
 			task_manager.spawn_handle(),

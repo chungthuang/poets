@@ -23,8 +23,8 @@ smallvec = "1.10.0"
 
 # Local
 pallet-template = { path = "../pallets/template", default-features = false }
-market-input = { path = "../pallets/market-input", default-features = false }
-market-input-runtime-api = { path = "../pallets/market-input/runtime-api", default-features = false }
+market-state = { path = "../pallets/market-state", default-features = false }
+market-state-runtime-api = { path = "../pallets/market-state/runtime-api", default-features = false }
 
 # Substrate
 frame-benchmarking = { git = "https://github.com/paritytech/substrate", default-features = false, optional = true, "branch" = "polkadot-v0.9.37" }
@@ -95,8 +95,8 @@ std = [
 	"frame-support/std",
 	"frame-system-rpc-runtime-api/std",
 	"frame-system/std",
-	"market-input/std",
-	"market-input-runtime-api/std",
+	"market-state/std",
+	"market-state-runtime-api/std",
 	"pallet-aura/std",
 	"pallet-authorship/std",
 	"pallet-balances/std",
@@ -133,7 +133,7 @@ runtime-benchmarks = [
 	"frame-support/runtime-benchmarks",
 	"frame-system-benchmarking/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
-	"market-input/runtime-benchmarks",
+	"market-state/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
 	"pallet-collator-selection/runtime-benchmarks",
 	"pallet-template/runtime-benchmarks",
@@ -154,7 +154,7 @@ try-runtime = [
 	"frame-executive/try-runtime",
 	"frame-system/try-runtime",
 	"frame-try-runtime/try-runtime",
-	"market-input/try-runtime",
+	"market-state/try-runtime",
 	"pallet-aura/try-runtime",
 	"pallet-authorship/try-runtime",
 	"pallet-balances/try-runtime",

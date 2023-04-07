@@ -3,15 +3,46 @@
 
 pub use pallet::*;
 use codec::{Decode, Encode};
+use sp_core::crypto::KeyTypeId;
 use sp_std::vec::Vec;
 
 //#[cfg(test)]
 //mod tests;
 
+pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"mkst");
+
+pub mod crypto {
+	use crate::KEY_TYPE;
+	use sp_core::sr25519::Signature as Sr25519Signature;
+	use sp_runtime::app_crypto::{app_crypto, sr25519};
+	use sp_runtime::{MultiSignature, MultiSigner};
+	use sp_runtime::traits::Verify;
+	// -- snip --
+	app_crypto!(sr25519, KEY_TYPE);
+
+	pub struct TestAuthId;
+
+	impl frame_system::offchain::AppCrypto<MultiSigner, MultiSignature> for TestAuthId {
+		type RuntimeAppPublic = Public;
+		type GenericSignature = sp_core::sr25519::Signature;
+		type GenericPublic = sp_core::sr25519::Public;
+	}
+
+	// implemented for mock runtime in test
+	impl frame_system::offchain::AppCrypto<<Sr25519Signature as Verify>::Signer, Sr25519Signature>
+	for TestAuthId
+	{
+		type RuntimeAppPublic = Public;
+		type GenericSignature = sp_core::sr25519::Signature;
+		type GenericPublic = sp_core::sr25519::Public;
+	}
+}
+
 #[frame_support::pallet]
 pub mod pallet {
 	use frame_support::storage::PrefixIterator;
 	use frame_support::{dispatch::DispatchResultWithPostInfo, pallet_prelude::*};
+	use frame_system::offchain::{AppCrypto, CreateSignedTransaction, SendSignedTransaction, Signer};
 	use frame_system::pallet_prelude::*;
 	use sp_std::default::Default;
 
@@ -19,7 +50,9 @@ pub mod pallet {
 
 
 	#[pallet::config]
-	pub trait Config: frame_system::Config {
+	pub trait Config: frame_system::Config + CreateSignedTransaction<Call<Self>> {
+		/// The identifier type for an offchain worker.
+		type AuthorityId: AppCrypto<Self::Public, Self::Signature>;
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		/// Length of each market open period, approximated by block numbers.
@@ -115,7 +148,7 @@ pub mod pallet {
 	}
 
 	#[pallet::call]
-	impl<T: Config> Pallet<T> {
+	impl<T: Config> Pallet<T>  {
 		/// Submits a bid quantity and price
 		#[pallet::call_index(0)]
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
@@ -213,8 +246,35 @@ pub mod pallet {
 			if block_number.try_into().unwrap_or(0) % T::OpenPeriod::get() == 0 {
 				// Beginning of clearing stage
 				if <Stage<T>>::get() == Some(MARKET_STAGE_CLEARING) {
-					let _solution = Self::solve_double_auction();
-					return;
+					let signer = Signer::<T, T::AuthorityId>::all_accounts();
+					if !signer.can_sign() {
+						log::error!("No local accounts available. Consider adding one via `author_insertKey` RPC.");
+						return;
+					}
+
+					match Self::solve_double_auction() {
+						Ok(Some(s)) => {
+							let results = signer.send_signed_transaction(
+								|_account| {
+									let accepted_bids = s.accepted_bids.clone();
+									let accepted_asks = s.accepted_asks.clone();
+									Call::submit_solution { auction_price: s.auction_price, accepted_bids, accepted_asks }
+								}
+							);
+							if let Some((account, result)) = results.get(0) {
+								if result.is_err() {
+									log::error!("Offchain worker failed to submit solution in transaction from account {:?}", account.id);
+								}
+							}
+						},
+						Ok(None) => {
+							log::warn!("Double auction did not find any solution");
+						}
+						Err(err) => {
+							log::error!("Double auction failed, error: {err:?}");
+						}
+					}
+
 				}
 			}
 		}
@@ -226,6 +286,7 @@ pub mod pallet {
 		pub(crate) price: u64,
 	}
 
+	#[derive(Clone)]
 	pub(crate) struct Solution<T: Config> {
 		pub(crate) auction_price: u64,
 		pub(crate) accepted_bids: BoundedVec<T::AccountId, MaxSubmissionEntries>,
@@ -274,6 +335,12 @@ pub mod pallet {
 				// TODO: Consider partial order
 			}
 			if accepted_bids.len() == 0 || accepted_asks.len() == 0 {
+				return Ok(None);
+			}
+
+			let signer = Signer::<T, T::AuthorityId>::all_accounts();
+			if !signer.can_sign() {
+				log::error!("No local accounts available. Consider adding one via `author_insertKey` RPC.");
 				return Ok(None);
 			}
 			Ok(Some(Solution{

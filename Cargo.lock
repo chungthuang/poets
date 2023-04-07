@@ -4505,7 +4505,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "market-input"
+name = "market-state"
 version = "0.1.0"
 dependencies = [
  "frame-benchmarking",
@@ -4522,12 +4522,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "market-input-rpc"
+name = "market-state-rpc"
 version = "0.1.0"
 dependencies = [
  "jsonrpsee",
  "log",
- "market-input-runtime-api",
+ "market-state-runtime-api",
  "parity-scale-codec",
  "serde",
  "sp-api",
@@ -4537,11 +4537,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "market-input-runtime-api"
+name = "market-state-runtime-api"
 version = "0.1.0"
 dependencies = [
  "frame-support",
- "market-input",
+ "market-state",
  "parity-scale-codec",
  "serde",
  "serde_json",
@@ -6208,8 +6208,8 @@ dependencies = [
  "frame-benchmarking-cli",
  "jsonrpsee",
  "log",
- "market-input-rpc",
- "market-input-runtime-api",
+ "market-state",
+ "market-state-rpc",
  "pallet-transaction-payment-rpc",
  "parachain-template-runtime",
  "parity-scale-codec",
@@ -6273,8 +6273,8 @@ dependencies = [
  "frame-try-runtime",
  "hex-literal",
  "log",
- "market-input",
- "market-input-runtime-api",
+ "market-state",
+ "market-state-runtime-api",
  "pallet-aura",
  "pallet-authorship",
  "pallet-balances",

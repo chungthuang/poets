@@ -12,3 +12,4 @@
     --chain ./specs/raw-local-chainspec.json \
     --port 30343 \
     --ws-port 9977
+    --offchain-worker
