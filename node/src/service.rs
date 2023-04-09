@@ -190,6 +190,7 @@ async fn start_node_impl(
 		})?;
 
 	if parachain_config.offchain_worker.enabled {
+		log::info!("offchain worker enabled");
 		let keystore = params.keystore_container.sync_keystore();
 		// TODO: Remove this and inject keys via RPC calls to `author_insertKey`
 		sp_keystore::SyncCryptoStore::sr25519_generate_new(

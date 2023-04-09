@@ -56,7 +56,6 @@ where
 	module.merge(System::new(client.clone(), pool, deny_unsafe).into_rpc())?;
 	module.merge(TransactionPayment::new(client.clone()).into_rpc())?;
 	module.merge(MarketState::new(client.clone()).into_rpc())?;
-	//module.merge(MarketState::into_rpc(MarketState::new(client)))?;
 
 	Ok(module)
 }

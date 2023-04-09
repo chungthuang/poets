@@ -218,14 +218,23 @@ pub mod pallet {
 		/// Returns the non-negotiable weight consumed in the block.
 		/// https://substrate.stackexchange.com/questions/4371/how-to-weight-on-initialize
 		fn on_initialize(block_number: T::BlockNumber) -> Weight {
-			log::info!("initializing block");
-			if block_number.try_into().unwrap_or(0) % T::OpenPeriod::get() == 0 {
+			if (block_number.try_into().unwrap_or(0) % T::OpenPeriod::get()) == 0 {
 				let new_stage = match <Stage<T>>::get() {
 					Some(MARKET_STAGE_OPEN) => {
 						Self::deposit_event(Event::BeginClearMarket);
 						MARKET_STAGE_CLEARING
 					},
 					Some(MARKET_STAGE_CLEARING) => {
+						// For simplicity, we assume all items can be deleted in one block for now
+						let limit = <MaxSubmissionEntries as Get<u32>>::get();
+						let result = <Bids<T>>::clear(limit, None);
+						if result.maybe_cursor.is_some() {
+							log::warn!("Not all bids are removed");
+						}
+						let result = <Asks<T>>::clear(limit, None);
+						if result.maybe_cursor.is_some() {
+							log::warn!("Not all asks are removed");
+						}
 						Self::deposit_event(Event::BeginOpenMarket);
 						MARKET_STAGE_OPEN
 					},
@@ -242,7 +251,6 @@ pub mod pallet {
 		/// Validators will generate transactions that feed results of offchain computations back on chain
 		/// called after every block import
 		fn offchain_worker(block_number: T::BlockNumber) {
-			log::info!("start offchain worker");
 			if block_number.try_into().unwrap_or(0) % T::OpenPeriod::get() == 0 {
 				// Beginning of clearing stage
 				if <Stage<T>>::get() == Some(MARKET_STAGE_CLEARING) {
@@ -431,21 +439,22 @@ pub mod pallet {
 
 #[derive(Default, Encode, Decode)]
 pub struct MarketSubmissions {
-	pub bids: Vec<(u64, u64)>,
-	pub asks: Vec<(u64, u64)>,
+	pub bids: Vec<(EncodedAccountId, u64, u64)>,
+	pub asks: Vec<(EncodedAccountId, u64, u64)>,
 	pub stage: u64
 }
 
+type EncodedAccountId = Vec<u8>;
 
 impl<T: Config> Pallet<T> {
 	pub fn get_submissions() ->  MarketSubmissions {
-		let mut bids: Vec<(u64, u64)> = Vec::new();
-		for (_account, (quantity, price)) in  <Bids<T>>::iter() {
-			bids.push((quantity, price));
+		let mut bids = Vec::new();
+		for (account, (quantity, price)) in  <Bids<T>>::iter() {
+			bids.push((account.encode(), quantity, price));
 		}
-		let mut asks: Vec<(u64, u64)> = Vec::new();
-		for (_account, (quantity, price)) in  <Asks<T>>::iter() {
-			asks.push((quantity, price));
+		let mut asks = Vec::new();
+		for (account, (quantity, price)) in  <Asks<T>>::iter() {
+			asks.push((account.encode(), quantity, price));
 		}
 		MarketSubmissions {
 			bids,
