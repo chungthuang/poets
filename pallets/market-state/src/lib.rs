@@ -1,8 +1,8 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::unused_unit)]
 
-pub use pallet::*;
 use codec::{Decode, Encode};
+pub use pallet::*;
 use sp_core::crypto::KeyTypeId;
 use sp_std::vec::Vec;
 
@@ -15,8 +15,8 @@ pub mod crypto {
 	use crate::KEY_TYPE;
 	use sp_core::sr25519::Signature as Sr25519Signature;
 	use sp_runtime::app_crypto::{app_crypto, sr25519};
-	use sp_runtime::{MultiSignature, MultiSigner};
 	use sp_runtime::traits::Verify;
+	use sp_runtime::{MultiSignature, MultiSigner};
 	// -- snip --
 	app_crypto!(sr25519, KEY_TYPE);
 
@@ -30,7 +30,7 @@ pub mod crypto {
 
 	// implemented for mock runtime in test
 	impl frame_system::offchain::AppCrypto<<Sr25519Signature as Verify>::Signer, Sr25519Signature>
-	for TestAuthId
+		for TestAuthId
 	{
 		type RuntimeAppPublic = Public;
 		type GenericSignature = sp_core::sr25519::Signature;
@@ -42,12 +42,16 @@ pub mod crypto {
 pub mod pallet {
 	use frame_support::storage::PrefixIterator;
 	use frame_support::{dispatch::DispatchResultWithPostInfo, pallet_prelude::*};
-	use frame_system::offchain::{AppCrypto, CreateSignedTransaction, SendSignedTransaction, Signer};
+	use frame_system::offchain::{
+		AppCrypto, CreateSignedTransaction, SendSignedTransaction, Signer,
+	};
 	use frame_system::pallet_prelude::*;
-	use sp_std::default::Default;
+	use sp_std::{
+		default::Default,
+		fmt::{Debug, Formatter, Result as FmtResult},
+	};
 
 	type MaxSubmissionEntries = ConstU32<100>;
-
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config + CreateSignedTransaction<Call<Self>> {
@@ -108,7 +112,16 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn get_solution)]
 	// Best solution submitted so far, a tuple of submitter, social welfare score, auction price, accepted bids and asks
-	pub(super) type BestSolution<T: Config> = StorageValue<_, (T::AccountId, u64, u64, BoundedVec<T::AccountId, MaxSubmissionEntries>, BoundedVec<T::AccountId, MaxSubmissionEntries>)>;
+	pub(super) type BestSolution<T: Config> = StorageValue<
+		_,
+		(
+			T::AccountId,
+			u64,
+			u64,
+			BoundedVec<T::AccountId, MaxSubmissionEntries>,
+			BoundedVec<T::AccountId, MaxSubmissionEntries>,
+		),
+	>;
 
 	pub(super) type QuantityPrice = (u64, u64);
 
@@ -123,7 +136,6 @@ pub mod pallet {
 	pub(super) type MarketStage = u64;
 	pub(super) const MARKET_STAGE_OPEN: MarketStage = 0;
 	pub(super) const MARKET_STAGE_CLEARING: MarketStage = 1;
-
 
 	#[pallet::error]
 	pub enum Error<T> {
@@ -148,40 +160,40 @@ pub mod pallet {
 	}
 
 	#[pallet::call]
-	impl<T: Config> Pallet<T>  {
+	impl<T: Config> Pallet<T> {
 		/// Submits a bid quantity and price
 		#[pallet::call_index(0)]
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
-		pub fn submit_bid(origin: OriginFor<T>, quantity: u64, price: u64) -> DispatchResultWithPostInfo {
+		pub fn submit_bid(
+			origin: OriginFor<T>,
+			quantity: u64,
+			price: u64,
+		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 			Self::validate_bid_or_ask(quantity, price)?;
 
 			// Write new (quantity, price) to storage
 			<Bids<T>>::insert(&sender, (quantity, price));
 
-			Self::deposit_event(Event::Bid {
-				account: sender,
-				quantity,
-				price,
-			});
+			Self::deposit_event(Event::Bid { account: sender, quantity, price });
 			Ok(().into())
 		}
 
 		/// Submits an ask quantity and price
 		#[pallet::call_index(1)]
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
-		pub fn submit_ask(origin: OriginFor<T>, quantity: u64, price: u64) -> DispatchResultWithPostInfo {
+		pub fn submit_ask(
+			origin: OriginFor<T>,
+			quantity: u64,
+			price: u64,
+		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 			Self::validate_bid_or_ask(quantity, price)?;
 
 			// Write new (quantity, price) to storage
 			<Asks<T>>::insert(&sender, (quantity, price));
 
-			Self::deposit_event(Event::Ask {
-				account: sender,
-				quantity,
-				price,
-			});
+			Self::deposit_event(Event::Ask { account: sender, quantity, price });
 			Ok(().into())
 		}
 
@@ -197,16 +209,22 @@ pub mod pallet {
 			let sender = ensure_signed(origin)?;
 
 			if <Stage<T>>::get() != Some(MARKET_STAGE_CLEARING) {
-				return Err(Error::<T>::WrongMarketStage.into())
+				return Err(Error::<T>::WrongMarketStage.into());
 			}
 
-			let social_welfare = Self::validate_solution( auction_price, &accepted_bids, &accepted_asks)?;
+			let social_welfare =
+				Self::validate_solution(auction_price, &accepted_bids, &accepted_asks)?;
 			if let Some(current_solution) = <BestSolution<T>>::get() {
 				if social_welfare > current_solution.1 {
-					<BestSolution<T>>::set(Some((sender, social_welfare, auction_price, accepted_bids, accepted_asks)));
+					<BestSolution<T>>::set(Some((
+						sender,
+						social_welfare,
+						auction_price,
+						accepted_bids,
+						accepted_asks,
+					)));
 				}
 			}
-
 
 			Ok(().into())
 		}
@@ -260,29 +278,39 @@ pub mod pallet {
 						return;
 					}
 
+					log::info!("Finding a solution using double auction");
 					match Self::solve_double_auction() {
 						Ok(Some(s)) => {
-							let results = signer.send_signed_transaction(
-								|_account| {
-									let accepted_bids = s.accepted_bids.clone();
-									let accepted_asks = s.accepted_asks.clone();
-									Call::submit_solution { auction_price: s.auction_price, accepted_bids, accepted_asks }
+							let results = signer.send_signed_transaction(|_account| {
+								let accepted_bids = s.accepted_bids.clone();
+								let accepted_asks = s.accepted_asks.clone();
+								Call::submit_solution {
+									auction_price: s.auction_price,
+									accepted_bids,
+									accepted_asks,
 								}
-							);
+							});
 							if let Some((account, result)) = results.get(0) {
-								if result.is_err() {
-									log::error!("Offchain worker failed to submit solution in transaction from account {:?}", account.id);
-								}
+								match result {
+									Ok(_) => {
+										log::info!(
+											"Offchain worker submitted solution from account {:?}",
+											account.id
+										);
+									},
+									Err(_) => {
+										log::error!("Offchain worker failed to submit solution in transaction from account {:?}", account.id);
+									},
+								};
 							}
 						},
 						Ok(None) => {
 							log::warn!("Double auction did not find any solution");
-						}
+						},
 						Err(err) => {
 							log::error!("Double auction failed, error: {err:?}");
-						}
+						},
 					}
-
 				}
 			}
 		}
@@ -292,6 +320,16 @@ pub mod pallet {
 		pub(crate) account: T::AccountId,
 		pub(crate) quantity: u64,
 		pub(crate) price: u64,
+	}
+
+	impl<T: Config> Debug for Submission<T> {
+		fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+			f.debug_struct("Submission")
+				.field("account", &self.account)
+				.field("quantity", &self.quantity)
+				.field("price", &self.price)
+				.finish()
+		}
 	}
 
 	#[derive(Clone)]
@@ -304,9 +342,14 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {
 		fn solve_double_auction() -> Result<Option<Solution<T>>, Error<T>> {
 			let mut sorted_bids = Self::sort_by_price(<Bids<T>>::iter(), true)?;
+			log::info!("Sorted bids {:?}", &sorted_bids);
 			let mut sorted_asks = Self::sort_by_price(<Asks<T>>::iter(), false)?;
-			let mut accepted_bids: BoundedVec<T::AccountId, MaxSubmissionEntries> = Default::default();
-			let mut accepted_asks: BoundedVec<T::AccountId, MaxSubmissionEntries> = Default::default();
+			log::info!("Sorted asks {:?}", &sorted_asks);
+
+			let mut accepted_bids: BoundedVec<T::AccountId, MaxSubmissionEntries> =
+				Default::default();
+			let mut accepted_asks: BoundedVec<T::AccountId, MaxSubmissionEntries> =
+				Default::default();
 			let mut auction_price = 0;
 			let Some(mut bid) = sorted_bids.pop() else {
 				return Ok(None)
@@ -315,31 +358,61 @@ pub mod pallet {
 				return Ok(None)
 			};
 			loop {
+				if bid.quantity == 0 {
+					auction_price = bid.price;
+					match sorted_bids.pop() {
+						Some(next_bid) => {
+							bid = next_bid;
+						},
+						None => {
+							break;
+						},
+					};
+				}
+				if ask.quantity == 0 {
+					auction_price = ask.price;
+					match sorted_asks.pop() {
+						Some(next_ask) => {
+							ask = next_ask;
+						},
+						None => {
+							break;
+						},
+					};
+				}
 				if ask.price > bid.price {
+					log::info!("Ask higher than bid, break loop");
 					// TODO: Consider partial order
 					break;
 				}
-				if ask.quantity > bid.quantity {
-					accepted_bids.try_push(bid.account.clone()).map_err(|_| Error::<T>::TooManySubmissions)?;
+				if ask.quantity == bid.quantity {
+					log::info!("Bid ask equal");
+					ask.quantity = 0;
+					bid.quantity = 0;
+					accepted_bids
+						.try_push(bid.account.clone())
+						.map_err(|_| Error::<T>::TooManySubmissions)?;
+					accepted_asks
+						.try_push(ask.account.clone())
+						.map_err(|_| Error::<T>::TooManySubmissions)?;
+				} else if ask.quantity > bid.quantity {
+					log::info!("Ask at price {} has {} left", ask.price, ask.quantity);
 					ask.quantity -= bid.quantity;
-					auction_price = ask.price;
-					let Some(next_bid) = sorted_bids.pop() else {
-						return Ok(None)
-					};
-					bid = next_bid;
-					continue;
+					bid.quantity = 0;
+					accepted_bids
+						.try_push(bid.account.clone())
+						.map_err(|_| Error::<T>::TooManySubmissions)?;
 				} else {
-					accepted_asks.try_push(ask.account.clone()).map_err(|_| Error::<T>::TooManySubmissions)?;
-					auction_price = ask.price;
+					log::info!("Bid at price {} has {} left", bid.price, bid.quantity);
 					bid.quantity -= ask.quantity;
-					let Some(next_ask) = sorted_asks.pop() else {
-						return Ok(None)
-					};
-					ask = next_ask;
-					continue;
+					ask.quantity = 0;
+					accepted_asks
+						.try_push(ask.account.clone())
+						.map_err(|_| Error::<T>::TooManySubmissions)?;
 				}
 			}
 			if ask.price < bid.price && ask.quantity > 0 {
+				log::info!("Ask less than bid and ask quant > 0");
 				// TODO: Consider partial order
 			}
 			if accepted_bids.len() == 0 || accepted_asks.len() == 0 {
@@ -348,28 +421,25 @@ pub mod pallet {
 
 			let signer = Signer::<T, T::AuthorityId>::all_accounts();
 			if !signer.can_sign() {
-				log::error!("No local accounts available. Consider adding one via `author_insertKey` RPC.");
+				log::error!(
+					"No local accounts available. Consider adding one via `author_insertKey` RPC."
+				);
 				return Ok(None);
 			}
-			Ok(Some(Solution{
-				auction_price,
-				accepted_bids,
-				accepted_asks,
-			}))
+			Ok(Some(Solution { auction_price, accepted_bids, accepted_asks }))
 		}
 
-		fn sort_by_price(iterator: PrefixIterator<(T::AccountId, QuantityPrice)>, desc: bool) -> Result<BoundedVec<Submission<T>, MaxSubmissionEntries>, Error<T>> {
+		fn sort_by_price(
+			iterator: PrefixIterator<(T::AccountId, QuantityPrice)>,
+			desc: bool,
+		) -> Result<BoundedVec<Submission<T>, MaxSubmissionEntries>, Error<T>> {
 			let mut sorted: BoundedVec<Submission<T>, MaxSubmissionEntries> = Default::default();
 			for (account, (quantity, price)) in iterator {
 				let idx = match desc {
 					true => sorted.partition_point(|s| s.price > price),
 					false => sorted.partition_point(|s| s.price < price),
 				};
-				let submission = Submission{
-					account,
-					quantity,
-					price,
-				};
+				let submission = Submission { account, quantity, price };
 				sorted.try_insert(idx, submission).map_err(|_| Error::<T>::TooManySubmissions)?;
 			}
 			Ok(sorted)
@@ -377,14 +447,14 @@ pub mod pallet {
 
 		fn validate_bid_or_ask(quantity: u64, price: u64) -> Result<(), Error<T>> {
 			if <Stage<T>>::get() != Some(MARKET_STAGE_OPEN) {
-				return Err(Error::<T>::WrongMarketStage)
+				return Err(Error::<T>::WrongMarketStage);
 			}
 			let bound = T::Bound::get();
 			if quantity > bound.max_price || quantity < bound.min_price {
 				return Err(Error::<T>::InvalidBidOrAsk);
 			}
 			if price > bound.max_price || price < bound.min_price {
-				return Err(Error::<T>::InvalidBidOrAsk)
+				return Err(Error::<T>::InvalidBidOrAsk);
 			}
 			Ok(())
 		}
@@ -393,17 +463,21 @@ pub mod pallet {
 		/// Ask price is the min a producer/prosumer is willing to pay, so it has to <= auction price
 		/// For now we allow the sum of bid quantity and ask quantity to be different by a margin
 		/// Returns the social welfare score
-		fn validate_solution(auction_price: u64, accepted_bids: &[T::AccountId], accepted_asks: &[T::AccountId]) -> Result<u64, Error<T>> {
+		fn validate_solution(
+			auction_price: u64,
+			accepted_bids: &[T::AccountId],
+			accepted_asks: &[T::AccountId],
+		) -> Result<u64, Error<T>> {
 			let mut social_welfare_score = 0;
 			let mut total_bids = 0;
 			let mut total_asks = 0;
 			for bidder in accepted_bids {
 				let (bid_quantity, bid_price) = <Bids<T>>::get(&bidder);
 				if bid_quantity == 0 || bid_price == 0 {
-					return Err(Error::<T>::BidNotFound)
+					return Err(Error::<T>::BidNotFound);
 				}
 				if bid_price < auction_price {
-					return Err(Error::<T>::BidTooLow)
+					return Err(Error::<T>::BidTooLow);
 				}
 				total_bids += bid_quantity;
 				social_welfare_score += bid_price * bid_quantity;
@@ -412,24 +486,24 @@ pub mod pallet {
 			for asker in accepted_asks {
 				let (ask_quantity, ask_price) = <Asks<T>>::get(&asker);
 				if ask_quantity == 0 || ask_price == 0 {
-					return Err(Error::<T>::AskNotFound)
+					return Err(Error::<T>::AskNotFound);
 				}
 				if ask_price > auction_price {
-					return Err(Error::<T>::AskTooHigh)
+					return Err(Error::<T>::AskTooHigh);
 				}
 				total_asks += ask_quantity;
 				social_welfare_score -= ask_price * ask_quantity;
 			}
 
 			if social_welfare_score <= 0 {
-				return Err(Error::<T>::InvalidSoultion)
+				return Err(Error::<T>::InvalidSoultion);
 			}
 
 			const BID_ASK_MISMATCH_MARGIN: u64 = 10;
-			if total_asks > total_bids &&  total_asks - total_bids > BID_ASK_MISMATCH_MARGIN {
-				return Err(Error::<T>::InvalidSoultion)
+			if total_asks > total_bids && total_asks - total_bids > BID_ASK_MISMATCH_MARGIN {
+				return Err(Error::<T>::InvalidSoultion);
 			} else if total_bids - total_asks > BID_ASK_MISMATCH_MARGIN {
-				return Err(Error::<T>::InvalidSoultion)
+				return Err(Error::<T>::InvalidSoultion);
 			}
 
 			Ok(social_welfare_score)
@@ -441,25 +515,21 @@ pub mod pallet {
 pub struct MarketSubmissions {
 	pub bids: Vec<(EncodedAccountId, u64, u64)>,
 	pub asks: Vec<(EncodedAccountId, u64, u64)>,
-	pub stage: u64
+	pub stage: u64,
 }
 
 type EncodedAccountId = Vec<u8>;
 
 impl<T: Config> Pallet<T> {
-	pub fn get_submissions() ->  MarketSubmissions {
+	pub fn get_submissions() -> MarketSubmissions {
 		let mut bids = Vec::new();
-		for (account, (quantity, price)) in  <Bids<T>>::iter() {
+		for (account, (quantity, price)) in <Bids<T>>::iter() {
 			bids.push((account.encode(), quantity, price));
 		}
 		let mut asks = Vec::new();
-		for (account, (quantity, price)) in  <Asks<T>>::iter() {
+		for (account, (quantity, price)) in <Asks<T>>::iter() {
 			asks.push((account.encode(), quantity, price));
 		}
-		MarketSubmissions {
-			bids,
-			asks,
-			stage: <Stage<T>>::get().unwrap_or_default(),
-		}
+		MarketSubmissions { bids, asks, stage: <Stage<T>>::get().unwrap_or_default() }
 	}
 }
