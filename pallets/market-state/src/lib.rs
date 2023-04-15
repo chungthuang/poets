@@ -129,9 +129,14 @@ pub mod pallet {
 	#[pallet::generate_store(pub (super) trait Store)]
 	pub struct Pallet<T>(PhantomData<T>);
 
+	#[pallet::type_value]
+	pub(super) fn DefaultStage<T: Config>() -> MarketStage {
+		MARKET_STAGE_OPEN.into()
+	}
+
 	#[pallet::storage]
 	#[pallet::getter(fn get_stage)]
-	pub(super) type Stage<T> = StorageValue<_, MarketStage>;
+	pub(super) type Stage<T> = StorageValue<_, MarketStage, ValueQuery, DefaultStage<T>>;
 
 	pub(super) type MarketStage = u64;
 	pub(super) const MARKET_STAGE_OPEN: MarketStage = 0;
@@ -208,22 +213,28 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 
-			if <Stage<T>>::get() != Some(MARKET_STAGE_CLEARING) {
+			if <Stage<T>>::get() != MARKET_STAGE_CLEARING {
 				return Err(Error::<T>::WrongMarketStage.into());
 			}
 
 			let social_welfare =
 				Self::validate_solution(auction_price, &accepted_bids, &accepted_asks)?;
-			if let Some(current_solution) = <BestSolution<T>>::get() {
-				if social_welfare > current_solution.1 {
-					<BestSolution<T>>::set(Some((
-						sender,
-						social_welfare,
-						auction_price,
-						accepted_bids,
-						accepted_asks,
-					)));
-				}
+			log::info!("Valid solution with score {}", social_welfare);
+
+			let is_optimal = match <BestSolution<T>>::get() {
+				Some(current_solution) => social_welfare > current_solution.1,
+				None => true,
+			};
+
+			if is_optimal {
+				<BestSolution<T>>::set(Some((
+					sender,
+					social_welfare,
+					auction_price,
+					accepted_bids,
+					accepted_asks,
+				)));
+				Self::deposit_event(Event::Solution { auction_price, social_welfare });
 			}
 
 			Ok(().into())
@@ -238,11 +249,11 @@ pub mod pallet {
 		fn on_initialize(block_number: T::BlockNumber) -> Weight {
 			if (block_number.try_into().unwrap_or(0) % T::OpenPeriod::get()) == 0 {
 				let new_stage = match <Stage<T>>::get() {
-					Some(MARKET_STAGE_OPEN) => {
+					MARKET_STAGE_OPEN => {
 						Self::deposit_event(Event::BeginClearMarket);
 						MARKET_STAGE_CLEARING
 					},
-					Some(MARKET_STAGE_CLEARING) => {
+					MARKET_STAGE_CLEARING => {
 						// For simplicity, we assume all items can be deleted in one block for now
 						let limit = <MaxSubmissionEntries as Get<u32>>::get();
 						let result = <Bids<T>>::clear(limit, None);
@@ -271,7 +282,7 @@ pub mod pallet {
 		fn offchain_worker(block_number: T::BlockNumber) {
 			if block_number.try_into().unwrap_or(0) % T::OpenPeriod::get() == 0 {
 				// Beginning of clearing stage
-				if <Stage<T>>::get() == Some(MARKET_STAGE_CLEARING) {
+				if <Stage<T>>::get() == MARKET_STAGE_CLEARING {
 					let signer = Signer::<T, T::AuthorityId>::all_accounts();
 					if !signer.can_sign() {
 						log::error!("No local accounts available. Consider adding one via `author_insertKey` RPC.");
@@ -446,7 +457,7 @@ pub mod pallet {
 		}
 
 		fn validate_bid_or_ask(quantity: u64, price: u64) -> Result<(), Error<T>> {
-			if <Stage<T>>::get() != Some(MARKET_STAGE_OPEN) {
+			if <Stage<T>>::get() != MARKET_STAGE_OPEN {
 				return Err(Error::<T>::WrongMarketStage);
 			}
 			let bound = T::Bound::get();
@@ -468,34 +479,39 @@ pub mod pallet {
 			accepted_bids: &[T::AccountId],
 			accepted_asks: &[T::AccountId],
 		) -> Result<u64, Error<T>> {
-			let mut social_welfare_score = 0;
+			let mut social_welfare_score: i64 = 0;
 			let mut total_bids = 0;
 			let mut total_asks = 0;
 			for bidder in accepted_bids {
 				let (bid_quantity, bid_price) = <Bids<T>>::get(&bidder);
 				if bid_quantity == 0 || bid_price == 0 {
+					log::error!("Bid {:?} not found", bidder);
 					return Err(Error::<T>::BidNotFound);
 				}
 				if bid_price < auction_price {
+					log::error!("Bid too low");
 					return Err(Error::<T>::BidTooLow);
 				}
 				total_bids += bid_quantity;
-				social_welfare_score += bid_price * bid_quantity;
+				social_welfare_score += (bid_price * bid_quantity) as i64;
 			}
 
 			for asker in accepted_asks {
 				let (ask_quantity, ask_price) = <Asks<T>>::get(&asker);
 				if ask_quantity == 0 || ask_price == 0 {
+					log::error!("Ask not found");
 					return Err(Error::<T>::AskNotFound);
 				}
 				if ask_price > auction_price {
+					log::error!("Ask too high");
 					return Err(Error::<T>::AskTooHigh);
 				}
 				total_asks += ask_quantity;
-				social_welfare_score -= ask_price * ask_quantity;
+				social_welfare_score -= (ask_price * ask_quantity) as i64;
 			}
 
-			if social_welfare_score <= 0 {
+			if social_welfare_score < 0 {
+				log::error!("Social welfare can't be negative");
 				return Err(Error::<T>::InvalidSoultion);
 			}
 
@@ -506,7 +522,7 @@ pub mod pallet {
 				return Err(Error::<T>::InvalidSoultion);
 			}
 
-			Ok(social_welfare_score)
+			Ok(social_welfare_score as u64)
 		}
 	}
 }
@@ -530,6 +546,6 @@ impl<T: Config> Pallet<T> {
 		for (account, (quantity, price)) in <Asks<T>>::iter() {
 			asks.push((account.encode(), quantity, price));
 		}
-		MarketSubmissions { bids, asks, stage: <Stage<T>>::get().unwrap_or_default() }
+		MarketSubmissions { bids, asks, stage: <Stage<T>>::get() }
 	}
 }
