@@ -369,22 +369,22 @@ pub mod pallet {
 				return Ok(None)
 			};
 			loop {
-				if bid.quantity == 0 {
-					auction_price = bid.price;
-					match sorted_bids.pop() {
-						Some(next_bid) => {
-							bid = next_bid;
+				if ask.quantity == 0 {
+					auction_price = ask.price;
+					match sorted_asks.pop() {
+						Some(next_ask) => {
+							ask = next_ask;
 						},
 						None => {
 							break;
 						},
 					};
 				}
-				if ask.quantity == 0 {
-					auction_price = ask.price;
-					match sorted_asks.pop() {
-						Some(next_ask) => {
-							ask = next_ask;
+				if bid.quantity == 0 {
+					auction_price = bid.price;
+					match sorted_bids.pop() {
+						Some(next_bid) => {
+							bid = next_bid;
 						},
 						None => {
 							break;
