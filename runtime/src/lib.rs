@@ -433,7 +433,10 @@ parameter_types! {
 	pub const SessionLength: BlockNumber = 6 * HOURS;
 	pub const MaxInvulnerables: u32 = 100;
 	pub const ExecutiveBody: BodyId = BodyId::Executive;
-	pub const OpenPeriod: u64 = 5;
+	pub const OpenPeriod: u32 = 5;
+	pub const ContinuousPeriods: u32 = 24;
+	pub const MaxMarketPlayers: u32 = 100;
+	pub const MaxProductPerPlayer: u32 = 50;
 	pub const Bound: market_state::Bound = market_state::Bound {
 		min_price: 1,
 		max_price: 10,
@@ -470,6 +473,9 @@ impl market_state::Config for Runtime {
 	type AuthorityId = market_state::crypto::TestAuthId;
 	type RuntimeEvent = RuntimeEvent;
 	type OpenPeriod = OpenPeriod;
+	type ContinuousPeriods = ContinuousPeriods;
+	type MaxMarketPlayers = MaxMarketPlayers;
+	type MaxProductPerPlayer = MaxProductPerPlayer;
 	type Bound = Bound;
 }
 

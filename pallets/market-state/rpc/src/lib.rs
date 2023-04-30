@@ -15,12 +15,13 @@ use std::sync::Arc;
 
 #[derive(Serialize, Deserialize)]
 pub struct MarketSubmissions {
-	pub bids: Vec<(EncodedAccountId, u64, u64)>,
-	pub asks: Vec<(EncodedAccountId, u64, u64)>,
+	pub bids: Vec<(EncodedAccountId, Vec<EncodedProduct>)>,
+	pub asks: Vec<(EncodedAccountId, Vec<EncodedProduct>)>,
 	pub stage: u64,
 }
 
 type EncodedAccountId = Vec<u8>;
+type EncodedProduct = Vec<u8>;
 
 #[rpc(client, server)]
 pub trait MarketStateApi<BlockHash> {
