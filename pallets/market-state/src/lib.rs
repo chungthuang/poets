@@ -4,6 +4,7 @@
 use codec::{Decode, Encode};
 pub use pallet::*;
 use sp_core::crypto::KeyTypeId;
+use sp_core::Get;
 use sp_std::vec::Vec;
 
 //#[cfg(test)]
@@ -85,7 +86,7 @@ pub mod pallet {
 		/// Consumer submits demand quantity and price
 		NewBids {
 			account: T::AccountId,
-			bids: BoundedVec<Product, T::MaxProductPerPlayer>
+			bids: BoundedVec<Product, T::MaxProductPerPlayer>,
 		},
 		/// Supplier submits supply quantity and price
 		NewAsks {
@@ -106,13 +107,23 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_bids)]
-	pub(super) type Bids<T: Config> =
-		StorageMap<_, Blake2_128Concat, T::AccountId, BoundedVec<Product, T::MaxProductPerPlayer>, ValueQuery>;
+	pub(super) type Bids<T: Config> = StorageMap<
+		_,
+		Blake2_128Concat,
+		T::AccountId,
+		BoundedVec<Product, T::MaxProductPerPlayer>,
+		ValueQuery,
+	>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_asks)]
-	pub(super) type Asks<T: Config> =
-		StorageMap<_, Blake2_128Concat, T::AccountId, BoundedVec<Product, T::MaxProductPerPlayer>, ValueQuery>;
+	pub(super) type Asks<T: Config> = StorageMap<
+		_,
+		Blake2_128Concat,
+		T::AccountId,
+		BoundedVec<Product, T::MaxProductPerPlayer>,
+		ValueQuery,
+	>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_solution)]
@@ -337,20 +348,22 @@ pub mod pallet {
 				Ok(sorted_bids) => sorted_bids,
 				Err(err) => {
 					log::error!("Failed to sort bids, error: {err:?}");
-					return
-				}
+					return;
+				},
 			};
 			let mut multi_period_sorted_asks = match Self::sort_by_price(<Asks<T>>::iter(), false) {
 				Ok(sorted_asks) => sorted_asks,
 				Err(err) => {
 					log::error!("Failed to sort asks, error: {err:?}");
-					return
-				}
+					return;
+				},
 			};
 
 			let signer = Signer::<T, T::AuthorityId>::all_accounts();
 			if !signer.can_sign() {
-				log::error!("No local accounts available. Consider adding one via `author_insertKey` RPC.");
+				log::error!(
+					"No local accounts available. Consider adding one via `author_insertKey` RPC."
+				);
 				return;
 			}
 
@@ -381,9 +394,9 @@ pub mod pallet {
 							match result {
 								Ok(_) => {
 									log::info!(
-											"Offchain worker submitted solution from account {:?}",
-											account.id
-										);
+										"Offchain worker submitted solution from account {:?}",
+										account.id
+									);
 								},
 								Err(_) => {
 									log::error!("Offchain worker failed to submit solution in transaction from account {:?}", account.id);
@@ -401,7 +414,10 @@ pub mod pallet {
 			}
 		}
 
-		fn solve_single_period_double_auction(mut sorted_bids: BoundedVec<SinglePeriodProduct<T>, T::MaxMarketPlayers>, mut sorted_asks: BoundedVec<SinglePeriodProduct<T>, T::MaxMarketPlayers>) -> Result<Option<Solution<T>>, Error<T>> {
+		fn solve_single_period_double_auction(
+			mut sorted_bids: BoundedVec<SinglePeriodProduct<T>, T::MaxMarketPlayers>,
+			mut sorted_asks: BoundedVec<SinglePeriodProduct<T>, T::MaxMarketPlayers>,
+		) -> Result<Option<Solution<T>>, Error<T>> {
 			let mut accepted_bids: BoundedVec<T::AccountId, T::MaxMarketPlayers> =
 				Default::default();
 			let mut accepted_asks: BoundedVec<T::AccountId, T::MaxMarketPlayers> =
@@ -490,9 +506,18 @@ pub mod pallet {
 		fn sort_by_price(
 			products: PrefixIterator<(T::AccountId, BoundedVec<Product, T::MaxProductPerPlayer>)>,
 			desc: bool,
-		) -> Result<BoundedVec<BoundedVec<SinglePeriodProduct<T>, T::MaxMarketPlayers>, T::ContinuousPeriods>, Error<T>> {
+		) -> Result<
+			BoundedVec<
+				BoundedVec<SinglePeriodProduct<T>, T::MaxMarketPlayers>,
+				T::ContinuousPeriods,
+			>,
+			Error<T>,
+		> {
 			// Sorted product by price for each period
-			let mut sorted: BoundedVec<BoundedVec<SinglePeriodProduct<T>, T::MaxMarketPlayers>, T::ContinuousPeriods> = Default::default();
+			let mut sorted: BoundedVec<
+				BoundedVec<SinglePeriodProduct<T>, T::MaxMarketPlayers>,
+				T::ContinuousPeriods,
+			> = Default::default();
 			for (account, account_products) in products {
 				for product in account_products {
 					for period in product.start_period..product.end_period {
@@ -501,7 +526,16 @@ pub mod pallet {
 							true => sorted[period].partition_point(|s| s.price > product.price),
 							false => sorted[period].partition_point(|s| s.price < product.price),
 						};
-						sorted[period].try_insert(idx, SinglePeriodProduct { account: account.clone(), quantity: product.quantity, price: product.price }).map_err(|_| Error::<T>::TooManySubmissions)?;
+						sorted[period]
+							.try_insert(
+								idx,
+								SinglePeriodProduct {
+									account: account.clone(),
+									quantity: product.quantity,
+									price: product.price,
+								},
+							)
+							.map_err(|_| Error::<T>::TooManySubmissions)?;
 					}
 				}
 			}
@@ -522,7 +556,7 @@ pub mod pallet {
 					return Err(Error::<T>::InvalidBidOrAsk);
 				}
 				if p.end_period < p.start_period {
-					return Err(Error::<T>::InvalidBidOrAsk)
+					return Err(Error::<T>::InvalidBidOrAsk);
 				}
 			}
 			Ok(())
@@ -544,7 +578,7 @@ pub mod pallet {
 			for bidder in accepted_bids {
 				for bid in <Bids<T>>::get(&bidder) {
 					if bid.start_period != period {
-						continue
+						continue;
 					}
 					if bid.quantity == 0 || bid.price == 0 {
 						log::error!("Bid {:?} not found", bidder);
@@ -560,9 +594,9 @@ pub mod pallet {
 			}
 
 			for asker in accepted_asks {
-				for ask in  <Asks<T>>::get(&asker) {
+				for ask in <Asks<T>>::get(&asker) {
 					if ask.start_period != period {
-						continue
+						continue;
 					}
 					if ask.quantity == 0 || ask.price == 0 {
 						log::error!("Ask not found");
@@ -595,25 +629,25 @@ pub mod pallet {
 }
 
 #[derive(Default, Encode, Decode)]
-pub struct MarketSubmissions {
-	pub bids: Vec<(EncodedAccountId, Vec<EncodedProduct>)>,
-	pub asks: Vec<(EncodedAccountId, Vec<EncodedProduct>)>,
+pub struct MarketProducts {
+	pub bids: Vec<(EncodedAccountId, Vec<Product>)>,
+	pub asks: Vec<(EncodedAccountId, Vec<Product>)>,
 	pub stage: u64,
+	pub periods: u32,
 }
 
 type EncodedAccountId = Vec<u8>;
-type EncodedProduct = Vec<u8>;
 
 impl<T: Config> Pallet<T> {
-	pub fn get_submissions() -> MarketSubmissions {
+	pub fn get_products() -> MarketProducts {
 		let mut bids = Vec::new();
 		for (account, products) in <Bids<T>>::iter() {
-			bids.push((account.encode(), products.iter().map(|p| p.encode()).collect()));
+			bids.push((account.encode(), products.to_vec()));
 		}
 		let mut asks = Vec::new();
 		for (account, products) in <Asks<T>>::iter() {
-			asks.push((account.encode(), products.iter().map(|p| p.encode()).collect()));
+			asks.push((account.encode(), products.to_vec()));
 		}
-		MarketSubmissions { bids, asks, stage: <Stage<T>>::get() }
+		MarketProducts { bids, asks, stage: <Stage<T>>::get(), periods: T::ContinuousPeriods::get() }
 	}
 }

@@ -14,19 +14,28 @@ use sp_runtime::{generic::BlockId, traits::Block as BlockT};
 use std::sync::Arc;
 
 #[derive(Serialize, Deserialize)]
-pub struct MarketSubmissions {
-	pub bids: Vec<(EncodedAccountId, Vec<EncodedProduct>)>,
-	pub asks: Vec<(EncodedAccountId, Vec<EncodedProduct>)>,
+pub struct MarketProducts {
+	pub bids: Vec<(EncodedAccountId, Vec<Product>)>,
+	pub asks: Vec<(EncodedAccountId, Vec<Product>)>,
 	pub stage: u64,
+	pub periods: u32,
 }
 
 type EncodedAccountId = Vec<u8>;
-type EncodedProduct = Vec<u8>;
+
+#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
+pub struct Product {
+	pub price: u64,
+	pub quantity: u64,
+	pub start_period: u32,
+	// A single product will have end_period == start_period
+	pub end_period: u32,
+}
 
 #[rpc(client, server)]
 pub trait MarketStateApi<BlockHash> {
 	#[method(name = "marketState_getSubmissions")]
-	fn get_submissions(&self, at: Option<BlockHash>) -> RpcResult<MarketSubmissions>;
+	fn get_products(&self, at: Option<BlockHash>) -> RpcResult<MarketProducts>;
 }
 
 /// A struct that implements the `MarketStateApi`.
@@ -48,13 +57,46 @@ where
 	C: Send + Sync + 'static + ProvideRuntimeApi<Block> + HeaderBackend<Block>,
 	C::Api: MarketStateRuntimeApi<Block>,
 {
-	fn get_submissions(&self, at: Option<<Block as BlockT>::Hash>) -> RpcResult<MarketSubmissions> {
+	fn get_products(&self, at: Option<<Block as BlockT>::Hash>) -> RpcResult<MarketProducts> {
 		let api = self.client.runtime_api();
 		// If the block hash is not supplied assume the best block.
 		let at = BlockId::hash(at.unwrap_or_else(|| self.client.info().best_hash));
 
-		api.get_submissions(&at)
-			.map(|s| MarketSubmissions { bids: s.bids, asks: s.asks, stage: s.stage })
+		api.get_products(&at)
+			.map(|s| MarketProducts {
+				bids: s
+					.bids
+					.into_iter()
+					.map(|(account, bids)| {
+						(
+							account,
+							bids.into_iter().map(|b| Product {
+								price: b.price,
+								quantity: b.quantity,
+								start_period: b.start_period,
+								end_period: b.end_period,
+							}).collect(),
+						)
+					})
+					.collect(),
+				asks: s
+					.asks
+					.into_iter()
+					.map(|(account, asks)| {
+						(
+							account,
+							asks.into_iter().map(|a| Product {
+								price: a.price,
+								quantity: a.quantity,
+								start_period: a.start_period,
+								end_period: a.end_period,
+							}).collect(),
+						)
+					})
+					.collect(),
+				stage: s.stage,
+				periods: s.periods,
+			})
 			.map_err(runtime_error_into_rpc_err)
 	}
 }

@@ -652,9 +652,8 @@ impl_runtime_apis! {
 	}
 
 	impl market_state_runtime_api::MarketStateApi<Block> for Runtime {
-		fn get_submissions() -> market_state::MarketSubmissions {
-			log::warn!("Calling market state runtime api");
-			MarketState::get_submissions()
+		fn get_products() -> market_state::MarketProducts {
+			MarketState::get_products()
 		}
 	}
 
