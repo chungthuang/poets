@@ -27,9 +27,14 @@ type EncodedAccountId = Vec<u8>;
 pub struct Product {
 	pub price: u64,
 	pub quantity: u64,
-	pub start_period: u32,
-	// A single product will have end_period == start_period
-	pub end_period: u32,
+	pub flexible_loads: Vec<OperatingPeriods>,
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
+pub struct OperatingPeriods {
+	pub start: u32,
+	// A single product will have start == end
+	pub end: u32,
 }
 
 #[rpc(client, server)]
@@ -70,12 +75,17 @@ where
 					.map(|(account, bids)| {
 						(
 							account,
-							bids.into_iter().map(|b| Product {
-								price: b.price,
-								quantity: b.quantity,
-								start_period: b.start_period,
-								end_period: b.end_period,
-							}).collect(),
+							bids.into_iter()
+								.map(|b| Product {
+									price: b.price,
+									quantity: b.quantity,
+									flexible_loads: b
+										.flexible_loads
+										.into_iter()
+										.map(|l| OperatingPeriods { start: l.start, end: l.end })
+										.collect(),
+								})
+								.collect(),
 						)
 					})
 					.collect(),
@@ -85,12 +95,17 @@ where
 					.map(|(account, asks)| {
 						(
 							account,
-							asks.into_iter().map(|a| Product {
-								price: a.price,
-								quantity: a.quantity,
-								start_period: a.start_period,
-								end_period: a.end_period,
-							}).collect(),
+							asks.into_iter()
+								.map(|a| Product {
+									price: a.price,
+									quantity: a.quantity,
+									flexible_loads: a
+										.flexible_loads
+										.into_iter()
+										.map(|l| OperatingPeriods { start: l.start, end: l.end })
+										.collect(),
+								})
+								.collect(),
 						)
 					})
 					.collect(),
