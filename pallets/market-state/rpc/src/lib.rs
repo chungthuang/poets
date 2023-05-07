@@ -15,10 +15,12 @@ use std::sync::Arc;
 
 #[derive(Serialize, Deserialize)]
 pub struct MarketProducts {
-	pub bids: Vec<(EncodedAccountId, Vec<Product>)>,
-	pub asks: Vec<(EncodedAccountId, Vec<Product>)>,
+	pub bids: Vec<(EncodedAccountId, Vec<FlexibleProduct>)>,
+	pub asks: Vec<(EncodedAccountId, Vec<FlexibleProduct>)>,
 	pub stage: u64,
 	pub periods: u32,
+	pub grid_price: u64,
+	pub feed_in_tarrif: u64,
 }
 
 type EncodedAccountId = Vec<u8>;
@@ -27,15 +29,11 @@ type EncodedAccountId = Vec<u8>;
 pub struct Product {
 	pub price: u64,
 	pub quantity: u64,
-	pub flexible_loads: Vec<OperatingPeriods>,
+	pub start_period: u32,
+	pub end_period: u32,
 }
 
-#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
-pub struct OperatingPeriods {
-	pub start: u32,
-	// A single product will have start == end
-	pub end: u32,
-}
+type FlexibleProduct = Vec<Product>;
 
 #[rpc(client, server)]
 pub trait MarketStateApi<BlockHash> {
@@ -76,14 +74,16 @@ where
 						(
 							account,
 							bids.into_iter()
-								.map(|b| Product {
-									price: b.price,
-									quantity: b.quantity,
-									flexible_loads: b
-										.flexible_loads
+								.map(|flexible_bid| {
+									flexible_bid
 										.into_iter()
-										.map(|l| OperatingPeriods { start: l.start, end: l.end })
-										.collect(),
+										.map(|b| Product {
+											price: b.price,
+											quantity: b.quantity,
+											start_period: b.start_period,
+											end_period: b.end_period,
+										})
+										.collect()
 								})
 								.collect(),
 						)
@@ -96,14 +96,16 @@ where
 						(
 							account,
 							asks.into_iter()
-								.map(|a| Product {
-									price: a.price,
-									quantity: a.quantity,
-									flexible_loads: a
-										.flexible_loads
+								.map(|flexible_ask| {
+									flexible_ask
 										.into_iter()
-										.map(|l| OperatingPeriods { start: l.start, end: l.end })
-										.collect(),
+										.map(|a| Product {
+											price: a.price,
+											quantity: a.quantity,
+											start_period: a.start_period,
+											end_period: a.end_period,
+										})
+										.collect()
 								})
 								.collect(),
 						)
@@ -111,6 +113,8 @@ where
 					.collect(),
 				stage: s.stage,
 				periods: s.periods,
+				grid_price: s.grid_price,
+				feed_in_tarrif: s.feed_in_tarrif,
 			})
 			.map_err(runtime_error_into_rpc_err)
 	}

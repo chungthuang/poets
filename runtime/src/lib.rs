@@ -438,10 +438,10 @@ parameter_types! {
 	pub const MaxMarketPlayers: u32 = 100;
 	pub const MaxProductPerPlayer: u32 = 50;
 	pub const Bound: market_state::Bound = market_state::Bound {
-		min_price: 1,
-		max_price: 10,
+		feed_in_tarrif: 5,
+		grid_price: 10,
 		min_quantity: 1,
-		max_quantity: 10,
+		max_quantity: 20,
 	};
 }
 

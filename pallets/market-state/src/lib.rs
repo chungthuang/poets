@@ -78,8 +78,10 @@ pub mod pallet {
 	}
 
 	pub struct Bound {
-		pub min_price: u64,
-		pub max_price: u64,
+		// Lower bound for bid, otherwise producer earns more by selling back to the grid
+		pub feed_in_tarrif: u64,
+		// upper bound for ask, otherwise consumer pays less by buying from the grid
+		pub grid_price: u64,
 		pub min_quantity: u64,
 		pub max_quantity: u64,
 	}
@@ -90,12 +92,12 @@ pub mod pallet {
 		/// Consumer submits demand quantity and price
 		NewBids {
 			account: T::AccountId,
-			bids: BoundedVec<Product, T::MaxProductPerPlayer>,
+			bids: BoundedVec<FlexibleProduct, T::MaxProductPerPlayer>,
 		},
 		/// Supplier submits supply quantity and price
 		NewAsks {
 			account: T::AccountId,
-			asks: BoundedVec<Product, T::MaxProductPerPlayer>,
+			asks: BoundedVec<FlexibleProduct, T::MaxProductPerPlayer>,
 		},
 		/// A valid solution was submitted
 		Solution {
@@ -112,7 +114,7 @@ pub mod pallet {
 		_,
 		Blake2_128Concat,
 		T::AccountId,
-		BoundedVec<Product, T::MaxProductPerPlayer>,
+		BoundedVec<FlexibleProduct, T::MaxProductPerPlayer>,
 		ValueQuery,
 	>;
 
@@ -122,7 +124,7 @@ pub mod pallet {
 		_,
 		Blake2_128Concat,
 		T::AccountId,
-		BoundedVec<Product, T::MaxProductPerPlayer>,
+		BoundedVec<FlexibleProduct, T::MaxProductPerPlayer>,
 		ValueQuery,
 	>;
 
@@ -137,17 +139,19 @@ pub mod pallet {
 			SocialWelfare,
 			// Some<OperatingPeriods> if the bid/ask is accepted
 			BoundedVec<
-				(T::AccountId, BoundedVec<Option<OperatingPeriods>, T::MaxProductPerPlayer>),
+				(T::AccountId, BoundedVec<Option<Product>, T::MaxProductPerPlayer>),
 				T::MaxMarketPlayers,
 			>,
 			BoundedVec<
-				(T::AccountId, BoundedVec<Option<OperatingPeriods>, T::MaxProductPerPlayer>),
+				(T::AccountId, BoundedVec<Option<Product>, T::MaxProductPerPlayer>),
 				T::MaxMarketPlayers,
 			>,
 		),
 	>;
 
 	type AuctionPrice = u64;
+	// The price that means no auction took place.
+	const NO_AUCTION_PRICE: AuctionPrice = 0;
 	type SocialWelfare = u64;
 
 	#[pallet::pallet]
@@ -187,25 +191,60 @@ pub mod pallet {
 		BidTooLow,
 		/// Ask is above auction price
 		AskTooHigh,
-		/// Exceed maximum number of submissions
-		TooManySubmissions,
+		/// Exceed bounded vector size
+		VectorTooLarge,
+		/// Failed to submit transaction to the chain
+		TransactionFailed,
+		/// No account to sign a transaction
+		NoSigner,
 	}
 
 	/// Product models a bid/offer
-	#[derive(Clone, Debug, Default, Eq, PartialEq, Decode, Encode, TypeInfo, MaxEncodedLen)]
+	#[derive(
+		Copy, Clone, Debug, Default, Eq, PartialEq, Decode, Encode, TypeInfo, MaxEncodedLen,
+	)]
 	pub struct Product {
 		pub price: u64,
 		pub quantity: u64,
-		// The product can operate in any one of the range
-		pub flexible_loads: BoundedVec<OperatingPeriods, MaxFlexibleLoadsPerProduct>,
+		// A single product has start_period = end_period
+		pub start_period: u32,
+		pub end_period: u32,
 	}
 
-	#[derive(Clone, Debug, Default, Eq, PartialEq, Decode, Encode, TypeInfo, MaxEncodedLen)]
-	pub struct OperatingPeriods {
-		pub start: u32,
-		// A single product will have start == end
-		pub end: u32,
+	impl Product {
+		fn accept_by_auction(
+			&self,
+			product_type: ProductType,
+			auction_prices: &[AuctionPrice],
+		) -> bool {
+			for period in self.start_period..self.end_period {
+				let Some(auction_price) = auction_prices.get(period as usize) else {
+					return false;
+				};
+				match product_type {
+					ProductType::Bid => {
+						if self.price < *auction_price {
+							return false;
+						}
+					},
+					ProductType::Ask => {
+						if self.price > *auction_price {
+							return false;
+						}
+					},
+				}
+			}
+			true
+		}
 	}
+
+	#[derive(Copy, Clone)]
+	enum ProductType {
+		Bid,
+		Ask,
+	}
+
+	pub(super) type FlexibleProduct = BoundedVec<Product, MaxFlexibleLoadsPerProduct>;
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
@@ -214,10 +253,12 @@ pub mod pallet {
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
 		pub fn submit_bids(
 			origin: OriginFor<T>,
-			bids: BoundedVec<Product, T::MaxProductPerPlayer>,
+			bids: BoundedVec<FlexibleProduct, T::MaxProductPerPlayer>,
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
-			Self::validate_bid_or_ask(&bids)?;
+			for flexible_bid in bids.iter() {
+				Self::validate_product_offer(&flexible_bid, ProductType::Bid)?;
+			}
 
 			// Write new (quantity, price) to storage
 			<Bids<T>>::insert(&sender, bids.clone());
@@ -231,10 +272,12 @@ pub mod pallet {
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
 		pub fn submit_asks(
 			origin: OriginFor<T>,
-			asks: BoundedVec<Product, T::MaxProductPerPlayer>,
+			asks: BoundedVec<FlexibleProduct, T::MaxProductPerPlayer>,
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
-			Self::validate_bid_or_ask(&asks)?;
+			for flexible_ask in asks.iter() {
+				Self::validate_product_offer(&flexible_ask, ProductType::Ask)?;
+			}
 
 			// Write new (quantity, price) to storage
 			<Asks<T>>::insert(&sender, asks.clone());
@@ -249,13 +292,13 @@ pub mod pallet {
 		pub fn submit_solution(
 			origin: OriginFor<T>,
 			auction_prices: BoundedVec<AuctionPrice, T::ContinuousPeriods>,
-			// For each account, provide a vector of whether it's accepted. Some<OperatingPeriods> means it's accepted
+			// For each account, provide a vector of whether it's accepted. Some<Product> means it's accepted
 			bids: BoundedVec<
-				(T::AccountId, BoundedVec<Option<OperatingPeriods>, T::MaxProductPerPlayer>),
+				(T::AccountId, BoundedVec<Option<Product>, T::MaxProductPerPlayer>),
 				T::MaxMarketPlayers,
 			>,
 			asks: BoundedVec<
-				(T::AccountId, BoundedVec<Option<OperatingPeriods>, T::MaxProductPerPlayer>),
+				(T::AccountId, BoundedVec<Option<Product>, T::MaxProductPerPlayer>),
 				T::MaxMarketPlayers,
 			>,
 		) -> DispatchResultWithPostInfo {
@@ -331,339 +374,380 @@ pub mod pallet {
 			if block_number.try_into().unwrap_or(0) % T::OpenPeriod::get() == 0 {
 				// Beginning of clearing stage
 				if <Stage<T>>::get() == MARKET_STAGE_CLEARING {
-					log::info!("Finding a solution using double auction");
-					//Self::solve_double_auction();
+					match Self::solve_double_auction() {
+						Ok(_) => {
+							log::info!("Submitted solution from double auction");
+						},
+						Err(err) => {
+							log::error!("Double auction error: {err:?}");
+						},
+					};
 				}
 			}
 		}
 	}
 
-	pub(crate) struct SinglePeriodProduct<T: Config> {
-		pub(crate) account: T::AccountId,
-		pub(crate) quantity: u64,
-		pub(crate) price: u64,
+	/// The aggregated bids/asks at a given price
+	struct AggregatedProducts<T: Config> {
+		price: u64,
+		quantity: u64,
+		// Accounts with bids/asks at this price
+		accounts: Vec<T::AccountId>,
 	}
 
-	impl<T: Config> Debug for SinglePeriodProduct<T> {
+	impl<T: Config> Debug for AggregatedProducts<T> {
 		fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-			f.debug_struct("SinglePeriodProduct")
-				.field("account", &self.account)
-				.field("quantity", &self.quantity)
+			f.debug_struct("AggregatedProducts")
+				.field("accounts", &self.accounts)
 				.field("price", &self.price)
+				.field("quantity", &self.quantity)
 				.finish()
 		}
 	}
 
 	impl<T: Config> Pallet<T> {
-		/*
-		fn solve_double_auction() {
-			let mut multi_period_sorted_bids = match Self::sort_by_price(<Bids<T>>::iter(), true) {
-				Ok(sorted_bids) => sorted_bids,
-				Err(err) => {
-					log::error!("Failed to sort bids, error: {err:?}");
-					return;
-				},
-			};
-			let mut multi_period_sorted_asks = match Self::sort_by_price(<Asks<T>>::iter(), false) {
-				Ok(sorted_asks) => sorted_asks,
-				Err(err) => {
-					log::error!("Failed to sort asks, error: {err:?}");
-					return;
-				},
-			};
-
+		fn solve_double_auction() -> Result<(), Error<T>> {
 			let signer = Signer::<T, T::AuthorityId>::all_accounts();
 			if !signer.can_sign() {
 				log::error!(
 					"No local accounts available. Consider adding one via `author_insertKey` RPC."
 				);
-				return;
+				return Err(Error::NoSigner);
 			}
 
-			for period in 0..T::ContinuousPeriods::get() {
-				let Some(sorted_bids) = multi_period_sorted_bids.pop() else {
-					log::error!("Failed to get sorted bids for period {period}");
-					return
-				};
-				let Some(sorted_asks) = multi_period_sorted_asks.pop() else {
-					log::error!("Failed to get sorted asks for period {period}");
-					return
-				};
-				log::debug!("Period {period} sorted bids {:?}", sorted_bids);
-				log::debug!("Period {period} sorted asks {:?}", sorted_asks);
-				match Self::solve_single_period_double_auction(sorted_bids, sorted_asks) {
-					Ok(Some(s)) => {
+			let multi_period_aggregated_bids =
+				Self::aggregate_products(<Bids<T>>::iter(), ProductType::Bid);
+			let multi_period_aggregate_asks =
+				Self::aggregate_products(<Asks<T>>::iter(), ProductType::Ask);
 
+			let mut auction_prices: BoundedVec<AuctionPrice, T::ContinuousPeriods> =
+				Default::default();
+			for (period, (aggregated_bids, aggregated_asks)) in multi_period_aggregated_bids
+				.iter()
+				.zip(&multi_period_aggregate_asks)
+				.enumerate()
+			{
+				log::debug!("Period {period} aggregated bids {:?}", aggregated_bids);
+				log::debug!("Period {period} aggregated asks {:?}", aggregated_asks);
 
-					},
+				let auction_price = match Self::solve_single_period_double_auction(
+					aggregated_bids,
+					aggregated_asks,
+				) {
+					Ok(Some(price)) => price,
 					Ok(None) => {
-						log::warn!("Double auction did not find any solution for period {period}");
+						if !aggregated_bids.is_empty() && !aggregated_asks.is_empty() {
+							log::warn!(
+								"Double auction did not find any solution for period {period}"
+							);
+						}
+						NO_AUCTION_PRICE
 					},
 					Err(err) => {
 						log::error!("Double auction for period {period} failed, error: {err:?}");
-					},
-				}
-			}
-
-			let results = signer.send_signed_transaction(|_account| {
-				let accepted_bids = s.accepted_bids.clone();
-				let accepted_asks = s.accepted_asks.clone();
-				Call::submit_solution {
-					period,
-					auction_price: s.auction_price,
-					accepted_bids,
-					accepted_asks,
-				}
-			});
-
-			if let Some((account, result)) = results.get(0) {
-				match result {
-					Ok(_) => {
-						log::info!(
-										"Offchain worker submitted solution from account {:?}",
-										account.id
-									);
-					},
-					Err(_) => {
-						log::error!("Offchain worker failed to submit solution in transaction from account {:?}", account.id);
+						NO_AUCTION_PRICE
 					},
 				};
+				auction_prices.try_push(auction_price).map_err(|_| Error::VectorTooLarge)?;
+			}
+
+			let bids = Self::double_auction_result(&auction_prices, ProductType::Bid)?;
+			let asks = Self::double_auction_result(&auction_prices, ProductType::Ask)?;
+
+			let results = signer.send_signed_transaction(|_account| Call::submit_solution {
+				auction_prices: auction_prices.clone(),
+				bids: bids.clone(),
+				asks: asks.clone(),
+			});
+
+			match results.get(0) {
+				Some((_account, result)) => result.map_err(|_| Error::TransactionFailed),
+				None => Ok(()),
 			}
 		}
 
-		fn solve_single_period_double_auction(
-			mut sorted_bids: BoundedVec<SinglePeriodProduct<T>, T::MaxMarketPlayers>,
-			mut sorted_asks: BoundedVec<SinglePeriodProduct<T>, T::MaxMarketPlayers>,
-		) -> Result<Option<Solution<T>>, Error<T>> {
-			let mut bids_accepted: BoundedVec<T::AccountId, T::MaxMarketPlayers> =
-				Default::default();
-			let mut asks_accepted: BoundedVec<T::AccountId, T::MaxMarketPlayers> =
-				Default::default();
-			let mut auction_price = 0;
-
-			let Some(mut bid) = sorted_bids.pop() else {
-				return Ok(None)
-			};
-
-			let Some(mut ask) = sorted_asks.pop() else {
-				return Ok(None)
-			};
-			loop {
-				if ask.quantity == 0 {
-					auction_price = ask.price;
-					match sorted_asks.pop() {
-						Some(next_ask) => {
-							ask = next_ask;
-						},
-						None => {
-							break;
-						},
-					};
-				}
-				if bid.quantity == 0 {
-					auction_price = bid.price;
-					match sorted_bids.pop() {
-						Some(next_bid) => {
-							bid = next_bid;
-						},
-						None => {
-							break;
-						},
-					};
-				}
-				if ask.price > bid.price {
-					log::info!("Ask higher than bid, break loop");
-					// TODO: Consider partial order
-					break;
-				}
-				if ask.quantity == bid.quantity {
-					log::info!("Bid ask equal");
-					ask.quantity = 0;
-					bid.quantity = 0;
-					accepted_bids
-						.try_push(bid.account.clone())
-						.map_err(|_| Error::<T>::TooManySubmissions)?;
-					accepted_asks
-						.try_push(ask.account.clone())
-						.map_err(|_| Error::<T>::TooManySubmissions)?;
-				} else if ask.quantity > bid.quantity {
-					log::info!("Ask at price {} has {} left", ask.price, ask.quantity);
-					ask.quantity -= bid.quantity;
-					bid.quantity = 0;
-					accepted_bids
-						.try_push(bid.account.clone())
-						.map_err(|_| Error::<T>::TooManySubmissions)?;
-				} else {
-					log::info!("Bid at price {} has {} left", bid.price, bid.quantity);
-					bid.quantity -= ask.quantity;
-					ask.quantity = 0;
-					accepted_asks
-						.try_push(ask.account.clone())
-						.map_err(|_| Error::<T>::TooManySubmissions)?;
-				}
-			}
-			if ask.price < bid.price && ask.quantity > 0 {
-				log::info!("Ask less than bid and ask quant > 0");
-				// TODO: Consider partial order
-			}
-			if accepted_bids.len() == 0 || accepted_asks.len() == 0 {
-				return Ok(None);
-			}
-
-			let signer = Signer::<T, T::AuthorityId>::all_accounts();
-			if !signer.can_sign() {
-				log::error!(
-					"No local accounts available. Consider adding one via `author_insertKey` RPC."
-				);
-				return Ok(None);
-			}
-			Ok(Some(Solution { auction_price, accepted_bids, accepted_asks }))
-		}
-
-		fn sort_by_price(
-			products: PrefixIterator<(T::AccountId, BoundedVec<Product, T::MaxProductPerPlayer>)>,
-			desc: bool,
+		fn double_auction_result(
+			auction_prices: &[AuctionPrice],
+			product_type: ProductType,
 		) -> Result<
 			BoundedVec<
-				BoundedVec<SinglePeriodProduct<T>, T::MaxMarketPlayers>,
-				T::ContinuousPeriods,
+				(T::AccountId, BoundedVec<Option<Product>, T::MaxProductPerPlayer>),
+				T::MaxMarketPlayers,
 			>,
 			Error<T>,
 		> {
-			// Sorted product by price for each period
-			let mut sorted: BoundedVec<
-				BoundedVec<SinglePeriodProduct<T>, T::MaxMarketPlayers>,
-				T::ContinuousPeriods,
+			let products = match product_type {
+				ProductType::Bid => <Bids<T>>::iter(),
+				ProductType::Ask => <Asks<T>>::iter(),
+			};
+
+			let mut status: BoundedVec<
+				(T::AccountId, BoundedVec<Option<Product>, T::MaxProductPerPlayer>),
+				T::MaxMarketPlayers,
 			> = Default::default();
-			for (account, account_products) in products {
-				for product in account_products {
-					for period in product.start_period..product.end_period {
-						let period = period as usize;
-						let idx = match desc {
-							true => sorted[period].partition_point(|s| s.price > product.price),
-							false => sorted[period].partition_point(|s| s.price < product.price),
-						};
-						sorted[period]
-							.try_insert(
-								idx,
-								SinglePeriodProduct {
-									account: account.clone(),
-									quantity: product.quantity,
-									price: product.price,
-								},
-							)
-							.map_err(|_| Error::<T>::TooManySubmissions)?;
+			for (account, flexible_products) in products {
+				let mut account_status: BoundedVec<Option<Product>, T::MaxProductPerPlayer> =
+					Default::default();
+				for flexible_product in flexible_products {
+					// Double auction only tries to solve the first option in flexible products
+					let product_accepted = match flexible_product.first() {
+						Some(product) => {
+							if product.accept_by_auction(product_type, auction_prices) {
+								Some(*product)
+							} else {
+								None
+							}
+						},
+						None => None,
+					};
+					account_status.try_push(product_accepted).map_err(|_| Error::VectorTooLarge)?;
+				}
+				status.try_push((account, account_status)).map_err(|_| Error::VectorTooLarge)?;
+			}
+			Ok(status)
+		}
+
+		fn solve_single_period_double_auction(
+			aggregated_bids: &[AggregatedProducts<T>],
+			aggregated_asks: &[AggregatedProducts<T>],
+		) -> Result<Option<AuctionPrice>, Error<T>> {
+			let mut bids = aggregated_bids.iter();
+			while let Some(bid) = bids.next() {
+				for ask in aggregated_asks.iter() {
+					if bid.price < ask.price {
+						return Ok(None);
+					}
+					// Supply and demand matches
+					if bid.quantity == ask.quantity {
+						return Ok(Some(bid.price));
 					}
 				}
 			}
-			Ok(sorted)
+			Ok(None)
 		}
-		*/
 
-		fn validate_bid_or_ask(products: &[Product]) -> Result<(), Error<T>> {
+		/// Computes the aggregated supply/demand.
+		/// Asks are sorted by descending price, while bids are sorted by ascending price.
+		/// For flexible product, we assume the first product is the preferred and only one to aggregate
+		fn aggregate_products(
+			products: PrefixIterator<(
+				T::AccountId,
+				BoundedVec<FlexibleProduct, T::MaxProductPerPlayer>,
+			)>,
+			product_type: ProductType,
+		) -> Vec<Vec<AggregatedProducts<T>>> {
+			let periods = T::ContinuousPeriods::get() as usize;
+			let mut sorted: Vec<Vec<(T::AccountId, Product)>> = Vec::with_capacity(periods);
+			for _ in 0..periods {
+				sorted.push(Vec::new());
+			}
+			for (account, flexible_products) in products {
+				for flexible_product in flexible_products.iter() {
+					if let Some(product) = flexible_product.first() {
+						for period in product.start_period..product.end_period {
+							let period = period as usize;
+							let idx =
+								match product_type {
+									ProductType::Bid => sorted[period]
+										.partition_point(|(_, p)| p.price > product.price),
+									ProductType::Ask => sorted[period]
+										.partition_point(|(_, p)| p.price < product.price),
+								};
+							sorted[period].insert(idx, (account.clone(), *product))
+						}
+					}
+				}
+			}
+
+			let mut aggregated: Vec<Vec<AggregatedProducts<T>>> = Vec::with_capacity(periods);
+			for sorted_by_period in sorted {
+				let mut aggregated_by_period: Vec<AggregatedProducts<T>> = Vec::new();
+				for (account_id, product) in sorted_by_period {
+					if let Some(last_level) = aggregated_by_period.last_mut() {
+						if product.price == last_level.price {
+							last_level.quantity += product.quantity;
+							last_level.accounts.push(account_id);
+						} else {
+							let mut accounts = Vec::new();
+							accounts.push(account_id);
+							aggregated_by_period.push(AggregatedProducts {
+								price: product.price,
+								quantity: product.quantity,
+								accounts,
+							});
+						}
+					}
+				}
+				aggregated.push(aggregated_by_period);
+			}
+			aggregated
+		}
+
+		fn validate_product_offer(
+			flexible_product: &FlexibleProduct,
+			product_type: ProductType,
+		) -> Result<(), Error<T>> {
 			if <Stage<T>>::get() != MARKET_STAGE_OPEN {
 				return Err(Error::<T>::WrongMarketStage);
 			}
 
 			let bound = T::Bound::get();
-			for p in products.iter() {
-				if p.quantity > bound.max_price || p.quantity < bound.min_price {
+			for p in flexible_product.iter() {
+				match product_type {
+					ProductType::Bid => {
+						// Producer can earn more by selling back to the grid
+						if p.price < bound.feed_in_tarrif {
+							return Err(Error::<T>::InvalidBidOrAsk);
+						}
+					},
+					ProductType::Ask => {
+						// Consumer can pay less by buying from the grid
+						if p.price > bound.grid_price {
+							return Err(Error::<T>::InvalidBidOrAsk);
+						}
+					},
+				};
+				if p.quantity > bound.max_quantity || p.quantity < bound.min_quantity {
 					return Err(Error::<T>::InvalidBidOrAsk);
 				}
-				if p.price > bound.max_price || p.price < bound.min_price {
+				if p.end_period < p.start_period {
 					return Err(Error::<T>::InvalidBidOrAsk);
-				}
-				for p in &p.flexible_loads {
-					if p.end < p.start {
-						return Err(Error::<T>::InvalidBidOrAsk);
-					}
 				}
 			}
 			Ok(())
 		}
 
-		/// Bid price is the max a consumer is willing to pay, so it has to >= auction price
-		/// Ask price is the min a producer/prosumer is willing to pay, so it has to <= auction price
-		/// For now we allow the sum of bid quantity and ask quantity to be different by a margin
+		/// Bid price is the max a consumer is willing to pay, so it has to >= auction price.
+		/// Ask price is the min a producer/prosumer is willing to pay, so it has to <= auction price.
+		/// Unmatched bids will buy from the grid, and excess asks will sell to the grid.
 		/// Returns the social welfare score
 		fn validate_solution(
 			auction_prices: &BoundedVec<AuctionPrice, T::ContinuousPeriods>,
 			bids: &BoundedVec<
-				(T::AccountId, BoundedVec<Option<OperatingPeriods>, T::MaxProductPerPlayer>),
+				(T::AccountId, BoundedVec<Option<Product>, T::MaxProductPerPlayer>),
 				T::MaxMarketPlayers,
 			>,
 			asks: &BoundedVec<
-				(T::AccountId, BoundedVec<Option<OperatingPeriods>, T::MaxProductPerPlayer>),
+				(T::AccountId, BoundedVec<Option<Product>, T::MaxProductPerPlayer>),
 				T::MaxMarketPlayers,
 			>,
 		) -> Result<u64, Error<T>> {
-			let mut social_welfare_score: i64 = 0;
-			let periods = T::ContinuousPeriods::get() as usize;
-			let mut bid_quantities_by_period: Vec<u64> = Vec::with_capacity(periods);
-			let mut ask_quantities_by_period: Vec<u64> = Vec::with_capacity(periods);
-			for _ in 0..periods {
-				bid_quantities_by_period.push(0);
-				ask_quantities_by_period.push(0);
-			}
+			let (mut utilities, bid_quantities) =
+				Self::validate_product_solution(bids, ProductType::Bid, auction_prices)?;
+			let (mut costs, ask_quantities) =
+				Self::validate_product_solution(asks, ProductType::Ask, auction_prices)?;
 
-			for (bidder, accepted_periods) in bids.iter() {
-				let bids = <Bids<T>>::get(&bidder);
-				if accepted_periods.len() != bids.len() {
-					return Err(Error::<T>::BidNotFound);
-				}
-				for (bid, accepted_period) in bids.iter().zip(accepted_periods.iter()) {
-					if let Some(period) = accepted_period {
-						social_welfare_score += (bid.price * bid.quantity) as i64;
-						for p in period.start..period.end {
-							if bid.price < auction_prices[p as usize] {
-								log::error!("Bid too low");
-								return Err(Error::<T>::BidTooLow);
-							}
-						}
-					}
-				}
-			}
-
-			for (asker, accepted_periods) in asks.iter() {
-				let asks = <Asks<T>>::get(&asker);
-				if accepted_periods.len() != asks.len() {
-					return Err(Error::<T>::AskNotFound);
-				}
-				for (ask, accepted_period) in asks.iter().zip(accepted_periods.iter()) {
-					if let Some(period) = accepted_period {
-						social_welfare_score += (ask.price * ask.quantity) as i64;
-						for p in period.start..period.end {
-							if ask.price > auction_prices[p as usize] {
-								log::error!("Ask too high");
-								return Err(Error::<T>::AskTooHigh);
-							}
-						}
-					}
+			for (period, (bid_quantity, ask_quantity)) in
+				bid_quantities.iter().zip(&ask_quantities).enumerate()
+			{
+				if bid_quantity > ask_quantity {
+					let grid_price = T::Bound::get().grid_price;
+					let short = bid_quantity - ask_quantity;
+					log::debug!(
+						"Period {}: Buy {} units from grid at price {}",
+						period,
+						short,
+						grid_price
+					);
+					costs += grid_price * short;
+				} else if bid_quantity < ask_quantity {
+					let feed_in_tarrif = T::Bound::get().feed_in_tarrif;
+					let excess = ask_quantity - bid_quantity;
+					log::debug!(
+						"Period {}: Sell {} units to grid at price {}",
+						period,
+						excess,
+						feed_in_tarrif
+					);
+					utilities += feed_in_tarrif * excess;
 				}
 			}
 
-			if social_welfare_score < 0 {
-				log::error!("Social welfare can't be negative");
+			if utilities < costs {
+				log::warn!("Utilities {} should not be less than costs {}", utilities, costs);
 				return Err(Error::<T>::InvalidSoultion);
 			}
 
-			for period in 0..T::ContinuousPeriods::get() as usize {
-				if bid_quantities_by_period[period] != ask_quantities_by_period[period] {
-					return Err(Error::<T>::InvalidSoultion);
+			Ok(utilities - costs)
+		}
+
+		/// Validates if the auction price satisfies the bids/asks.
+		/// Returns the utilities/costs and total quantity per period
+		fn validate_product_solution(
+			solution: &BoundedVec<
+				(T::AccountId, BoundedVec<Option<Product>, T::MaxProductPerPlayer>),
+				T::MaxMarketPlayers,
+			>,
+			product_type: ProductType,
+			auction_prices: &[AuctionPrice],
+		) -> Result<(SocialWelfare, Vec<u64>), Error<T>> {
+			let mut social_welfare_score: SocialWelfare = 0;
+			let periods = T::ContinuousPeriods::get();
+			let mut quantities: Vec<u64> = Vec::with_capacity(periods as usize);
+			for _ in 0..periods {
+				quantities.push(0);
+			}
+			for (account, status) in solution.iter() {
+				let products = match product_type {
+					ProductType::Bid => <Bids<T>>::get(account),
+					ProductType::Ask => <Asks<T>>::get(account),
+				};
+				if products.len() != status.len() {
+					return match product_type {
+						ProductType::Bid => Err(Error::<T>::BidNotFound),
+						ProductType::Ask => Err(Error::<T>::AskNotFound),
+					};
+				}
+				for (flexible_product, product) in products.iter().zip(status) {
+					if let Some(product) = product {
+						if !flexible_product.iter().any(|p| p == product) {
+							return match product_type {
+								ProductType::Bid => Err(Error::<T>::BidNotFound),
+								ProductType::Ask => Err(Error::<T>::AskNotFound),
+							};
+						}
+						for period in product.start_period..product.end_period {
+							if period > periods {
+								log::warn!("Solution contains product that runs in period {period}, which is beyond max period {periods}");
+								return Err(Error::<T>::InvalidSoultion);
+							}
+							let Some(auction_price) = auction_prices.get(period as usize) else {
+								log::warn!("No auction price for period {period}");
+								return Err(Error::<T>::InvalidSoultion);
+							};
+							match product_type {
+								ProductType::Bid => {
+									if product.price < *auction_price {
+										log::warn!("Bid from account {account:?} is too low");
+										return Err(Error::<T>::BidTooLow);
+									}
+								},
+								ProductType::Ask => {
+									if product.price > *auction_price {
+										log::warn!("Ask from account {account:?} is too high");
+										return Err(Error::<T>::AskTooHigh);
+									}
+								},
+							};
+							quantities[period as usize] += product.quantity;
+							social_welfare_score += product.price * product.quantity;
+						}
+					}
 				}
 			}
-
-			Ok(social_welfare_score as u64)
+			Ok((social_welfare_score, quantities))
 		}
 	}
 }
 
 #[derive(Default, Encode, Decode)]
 pub struct MarketProducts {
-	pub bids: Vec<(EncodedAccountId, Vec<Product>)>,
-	pub asks: Vec<(EncodedAccountId, Vec<Product>)>,
+	pub bids: Vec<(EncodedAccountId, Vec<FlexibleProduct>)>,
+	pub asks: Vec<(EncodedAccountId, Vec<FlexibleProduct>)>,
 	pub stage: u64,
 	pub periods: u32,
+	pub grid_price: u64,
+	pub feed_in_tarrif: u64,
 }
 
 type EncodedAccountId = Vec<u8>;
@@ -678,11 +762,14 @@ impl<T: Config> Pallet<T> {
 		for (account, products) in <Asks<T>>::iter() {
 			asks.push((account.encode(), products.to_vec()));
 		}
+		let bound = T::Bound::get();
 		MarketProducts {
 			bids,
 			asks,
 			stage: <Stage<T>>::get(),
 			periods: T::ContinuousPeriods::get(),
+			grid_price: bound.grid_price,
+			feed_in_tarrif: bound.feed_in_tarrif,
 		}
 	}
 }
