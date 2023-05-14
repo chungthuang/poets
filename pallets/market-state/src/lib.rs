@@ -206,7 +206,7 @@ pub mod pallet {
 	pub struct Product {
 		pub price: u64,
 		pub quantity: u64,
-		// A single product has start_period = end_period
+		// A single product has end_period = start_period + 1
 		pub start_period: u32,
 		pub end_period: u32,
 	}
@@ -517,6 +517,7 @@ pub mod pallet {
 					if bid.price < ask.price {
 						return Ok(None);
 					}
+
 					// Supply and demand matches
 					if bid.quantity == ask.quantity {
 						return Ok(Some(bid.price));
@@ -619,7 +620,6 @@ pub mod pallet {
 
 		/// Bid price is the max a consumer is willing to pay, so it has to >= auction price.
 		/// Ask price is the min a producer/prosumer is willing to pay, so it has to <= auction price.
-		/// Unmatched bids will buy from the grid, and excess asks will sell to the grid.
 		/// Returns the social welfare score
 		fn validate_solution(
 			auction_prices: &BoundedVec<AuctionPrice, T::ContinuousPeriods>,
@@ -632,34 +632,22 @@ pub mod pallet {
 				T::MaxMarketPlayers,
 			>,
 		) -> Result<u64, Error<T>> {
-			let (mut utilities, bid_quantities) =
+			let (utilities, bid_quantities) =
 				Self::validate_product_solution(bids, ProductType::Bid, auction_prices)?;
-			let (mut costs, ask_quantities) =
+			let (costs, ask_quantities) =
 				Self::validate_product_solution(asks, ProductType::Ask, auction_prices)?;
 
 			for (period, (bid_quantity, ask_quantity)) in
 				bid_quantities.iter().zip(&ask_quantities).enumerate()
 			{
-				if bid_quantity > ask_quantity {
-					let grid_price = T::Bound::get().grid_price;
-					let short = bid_quantity - ask_quantity;
-					log::debug!(
-						"Period {}: Buy {} units from grid at price {}",
-						period,
-						short,
-						grid_price
-					);
-					costs += grid_price * short;
-				} else if bid_quantity < ask_quantity {
-					let feed_in_tarrif = T::Bound::get().feed_in_tarrif;
-					let excess = ask_quantity - bid_quantity;
-					log::debug!(
-						"Period {}: Sell {} units to grid at price {}",
-						period,
-						excess,
-						feed_in_tarrif
-					);
-					utilities += feed_in_tarrif * excess;
+				log::debug!(
+					"Period {}: bid quantity {}, ask quantity {}",
+					period,
+					bid_quantity,
+					ask_quantity,
+				);
+				if bid_quantity != ask_quantity {
+					return Err(Error::<T>::InvalidSoultion);
 				}
 			}
 
@@ -747,7 +735,7 @@ pub struct MarketProducts {
 	pub stage: u64,
 	pub periods: u32,
 	pub grid_price: u64,
-	pub feed_in_tarrif: u64,
+	pub feed_in_tariff: u64,
 }
 
 type EncodedAccountId = Vec<u8>;
@@ -769,7 +757,7 @@ impl<T: Config> Pallet<T> {
 			stage: <Stage<T>>::get(),
 			periods: T::ContinuousPeriods::get(),
 			grid_price: bound.grid_price,
-			feed_in_tarrif: bound.feed_in_tarrif,
+			feed_in_tariff: bound.feed_in_tarrif,
 		}
 	}
 }

@@ -20,7 +20,7 @@ pub struct MarketProducts {
 	pub stage: u64,
 	pub periods: u32,
 	pub grid_price: u64,
-	pub feed_in_tarrif: u64,
+	pub feed_in_tariff: u64,
 }
 
 type EncodedAccountId = Vec<u8>;
@@ -114,7 +114,7 @@ where
 				stage: s.stage,
 				periods: s.periods,
 				grid_price: s.grid_price,
-				feed_in_tarrif: s.feed_in_tarrif,
+				feed_in_tariff: s.feed_in_tariff,
 			})
 			.map_err(runtime_error_into_rpc_err)
 	}
