@@ -771,7 +771,7 @@ where
 {
 	fn create_transaction<C: frame_system::offchain::AppCrypto<Self::Public, Self::Signature>>(
 		call: RuntimeCall,
-		public: <Signature as sp_runtime::traits::Verify>::Signer,
+		public: <Signature as Verify>::Signer,
 		account: AccountId,
 		nonce: Index,
 	) -> Option<(

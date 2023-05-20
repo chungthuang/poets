@@ -3,21 +3,19 @@
 
 use codec::{Decode, Encode};
 pub use pallet::*;
-use sp_core::crypto::KeyTypeId;
-use sp_core::Get;
+use sp_core::{crypto::KeyTypeId, Get};
 use sp_std::vec::Vec;
-
-//#[cfg(test)]
-//mod tests;
 
 pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"mkst");
 
 pub mod crypto {
 	use crate::KEY_TYPE;
 	use sp_core::sr25519::Signature as Sr25519Signature;
-	use sp_runtime::app_crypto::{app_crypto, sr25519};
-	use sp_runtime::traits::Verify;
-	use sp_runtime::{MultiSignature, MultiSigner};
+	use sp_runtime::{
+		app_crypto::{app_crypto, sr25519},
+		traits::Verify,
+		MultiSignature, MultiSigner,
+	};
 	// -- snip --
 	app_crypto!(sr25519, KEY_TYPE);
 
@@ -25,8 +23,8 @@ pub mod crypto {
 
 	impl frame_system::offchain::AppCrypto<MultiSigner, MultiSignature> for TestAuthId {
 		type RuntimeAppPublic = Public;
-		type GenericSignature = sp_core::sr25519::Signature;
-		type GenericPublic = sp_core::sr25519::Public;
+		type GenericSignature = sr25519::Signature;
+		type GenericPublic = sr25519::Public;
 	}
 
 	// implemented for mock runtime in test
@@ -41,12 +39,13 @@ pub mod crypto {
 
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::storage::PrefixIterator;
-	use frame_support::{dispatch::DispatchResultWithPostInfo, pallet_prelude::*};
-	use frame_system::offchain::{
-		AppCrypto, CreateSignedTransaction, SendSignedTransaction, Signer,
+	use frame_support::{
+		dispatch::DispatchResultWithPostInfo, pallet_prelude::*, storage::PrefixIterator,
 	};
-	use frame_system::pallet_prelude::*;
+	use frame_system::{
+		offchain::{AppCrypto, CreateSignedTransaction, SendSignedTransaction, Signer},
+		pallet_prelude::*,
+	};
 	use sp_std::{
 		default::Default,
 		fmt::{Debug, Formatter, Result as FmtResult},
@@ -106,6 +105,7 @@ pub mod pallet {
 		},
 		BeginOpenMarket,
 		BeginClearMarket,
+		RunDoubleAuction,
 	}
 
 	#[pallet::storage]
@@ -222,16 +222,14 @@ pub mod pallet {
 					return false;
 				};
 				match product_type {
-					ProductType::Bid => {
+					ProductType::Bid =>
 						if self.price < *auction_price {
-							return false;
-						}
-					},
-					ProductType::Ask => {
+							return false
+						},
+					ProductType::Ask =>
 						if self.price > *auction_price {
-							return false;
-						}
-					},
+							return false
+						},
 				}
 			}
 			true
@@ -305,7 +303,7 @@ pub mod pallet {
 			let sender = ensure_signed(origin)?;
 
 			if <Stage<T>>::get() != MARKET_STAGE_CLEARING {
-				return Err(Error::<T>::WrongMarketStage.into());
+				return Err(Error::<T>::WrongMarketStage.into())
 			}
 
 			let social_welfare = Self::validate_solution(&auction_prices, &bids, &asks)?;
@@ -374,6 +372,7 @@ pub mod pallet {
 			if block_number.try_into().unwrap_or(0) % T::OpenPeriod::get() == 0 {
 				// Beginning of clearing stage
 				if <Stage<T>>::get() == MARKET_STAGE_CLEARING {
+					Self::deposit_event(Event::RunDoubleAuction);
 					match Self::solve_double_auction() {
 						Ok(_) => {
 							log::info!("Submitted solution from double auction");
@@ -412,7 +411,7 @@ pub mod pallet {
 				log::error!(
 					"No local accounts available. Consider adding one via `author_insertKey` RPC."
 				);
-				return Err(Error::NoSigner);
+				return Err(Error::NoSigner)
 			}
 
 			let multi_period_aggregated_bids =
@@ -453,6 +452,7 @@ pub mod pallet {
 
 			let bids = Self::double_auction_result(&auction_prices, ProductType::Bid)?;
 			let asks = Self::double_auction_result(&auction_prices, ProductType::Ask)?;
+			log::info!("Double auction ");
 
 			let results = signer.send_signed_transaction(|_account| Call::submit_solution {
 				auction_prices: auction_prices.clone(),
@@ -515,12 +515,12 @@ pub mod pallet {
 			while let Some(bid) = bids.next() {
 				for ask in aggregated_asks.iter() {
 					if bid.price < ask.price {
-						return Ok(None);
+						return Ok(None)
 					}
 
 					// Supply and demand matches
 					if bid.quantity == ask.quantity {
-						return Ok(Some(bid.price));
+						return Ok(Some(bid.price))
 					}
 				}
 			}
@@ -547,13 +547,12 @@ pub mod pallet {
 					if let Some(product) = flexible_product.first() {
 						for period in product.start_period..product.end_period {
 							let period = period as usize;
-							let idx =
-								match product_type {
-									ProductType::Bid => sorted[period]
-										.partition_point(|(_, p)| p.price > product.price),
-									ProductType::Ask => sorted[period]
-										.partition_point(|(_, p)| p.price < product.price),
-								};
+							let idx = match product_type {
+								ProductType::Bid =>
+									sorted[period].partition_point(|(_, p)| p.price > product.price),
+								ProductType::Ask =>
+									sorted[period].partition_point(|(_, p)| p.price < product.price),
+							};
 							sorted[period].insert(idx, (account.clone(), *product))
 						}
 					}
@@ -589,7 +588,7 @@ pub mod pallet {
 			product_type: ProductType,
 		) -> Result<(), Error<T>> {
 			if <Stage<T>>::get() != MARKET_STAGE_OPEN {
-				return Err(Error::<T>::WrongMarketStage);
+				return Err(Error::<T>::WrongMarketStage)
 			}
 
 			let bound = T::Bound::get();
@@ -598,21 +597,21 @@ pub mod pallet {
 					ProductType::Bid => {
 						// Producer can earn more by selling back to the grid
 						if p.price < bound.feed_in_tarrif {
-							return Err(Error::<T>::InvalidBidOrAsk);
+							return Err(Error::<T>::InvalidBidOrAsk)
 						}
 					},
 					ProductType::Ask => {
 						// Consumer can pay less by buying from the grid
 						if p.price > bound.grid_price {
-							return Err(Error::<T>::InvalidBidOrAsk);
+							return Err(Error::<T>::InvalidBidOrAsk)
 						}
 					},
 				};
 				if p.quantity > bound.max_quantity || p.quantity < bound.min_quantity {
-					return Err(Error::<T>::InvalidBidOrAsk);
+					return Err(Error::<T>::InvalidBidOrAsk)
 				}
 				if p.end_period < p.start_period {
-					return Err(Error::<T>::InvalidBidOrAsk);
+					return Err(Error::<T>::InvalidBidOrAsk)
 				}
 			}
 			Ok(())
@@ -647,13 +646,13 @@ pub mod pallet {
 					ask_quantity,
 				);
 				if bid_quantity != ask_quantity {
-					return Err(Error::<T>::InvalidSoultion);
+					return Err(Error::<T>::InvalidSoultion)
 				}
 			}
 
 			if utilities < costs {
 				log::warn!("Utilities {} should not be less than costs {}", utilities, costs);
-				return Err(Error::<T>::InvalidSoultion);
+				return Err(Error::<T>::InvalidSoultion)
 			}
 
 			Ok(utilities - costs)
@@ -684,7 +683,7 @@ pub mod pallet {
 					return match product_type {
 						ProductType::Bid => Err(Error::<T>::BidNotFound),
 						ProductType::Ask => Err(Error::<T>::AskNotFound),
-					};
+					}
 				}
 				for (flexible_product, product) in products.iter().zip(status) {
 					if let Some(product) = product {
@@ -692,30 +691,28 @@ pub mod pallet {
 							return match product_type {
 								ProductType::Bid => Err(Error::<T>::BidNotFound),
 								ProductType::Ask => Err(Error::<T>::AskNotFound),
-							};
+							}
 						}
 						for period in product.start_period..product.end_period {
 							if period > periods {
 								log::warn!("Solution contains product that runs in period {period}, which is beyond max period {periods}");
-								return Err(Error::<T>::InvalidSoultion);
+								return Err(Error::<T>::InvalidSoultion)
 							}
 							let Some(auction_price) = auction_prices.get(period as usize) else {
 								log::warn!("No auction price for period {period}");
 								return Err(Error::<T>::InvalidSoultion);
 							};
 							match product_type {
-								ProductType::Bid => {
+								ProductType::Bid =>
 									if product.price < *auction_price {
 										log::warn!("Bid from account {account:?} is too low");
-										return Err(Error::<T>::BidTooLow);
-									}
-								},
-								ProductType::Ask => {
+										return Err(Error::<T>::BidTooLow)
+									},
+								ProductType::Ask =>
 									if product.price > *auction_price {
 										log::warn!("Ask from account {account:?} is too high");
-										return Err(Error::<T>::AskTooHigh);
-									}
-								},
+										return Err(Error::<T>::AskTooHigh)
+									},
 							};
 							quantities[period as usize] += product.quantity;
 							social_welfare_score += product.price * product.quantity;
@@ -760,4 +757,152 @@ impl<T: Config> Pallet<T> {
 			feed_in_tariff: bound.feed_in_tarrif,
 		}
 	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use crate as market_state;
+	use frame_support::traits::Everything;
+	use sp_core::{crypto::AccountId32, ConstU32, ConstU64, H256};
+	use sp_runtime::{
+		testing::Header,
+		traits::{BlakeTwo256, IdentityLookup},
+		MultiSignature, MultiSigner,
+	};
+
+	frame_support::construct_runtime!(
+		pub enum Test where
+			Block = Block,
+			NodeBlock = Block,
+			UncheckedExtrinsic = UncheckedExtrinsic,
+		{
+			System: frame_system,
+			Balances: pallet_balances,
+			MarketState: market_state
+		}
+	);
+	type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
+	type Block = frame_system::mocking::MockBlock<Test>;
+
+	impl frame_system::Config for Test {
+		/// The identifier used to distinguish between accounts.
+		type AccountId = AccountId32;
+		/// The aggregated dispatch type that is available for extrinsics.
+		type RuntimeCall = RuntimeCall;
+		/// The lookup mechanism to get account ID from whatever is passed in dispatchers.
+		type Lookup = IdentityLookup<Self::AccountId>;
+		/// The index type for storing how many extrinsics an account has signed.
+		type Index = u64;
+		/// The index type for blocks.
+		type BlockNumber = u64;
+		/// The type for hashing blocks and tries.
+		type Hash = H256;
+		type Hashing = BlakeTwo256;
+		/// The header type.
+		type Header = Header;
+		/// The ubiquitous event type.
+		type RuntimeEvent = RuntimeEvent;
+		/// The ubiquitous origin type.
+		type RuntimeOrigin = RuntimeOrigin;
+		/// Maximum number of block number to block hash mappings to keep (oldest pruned first).
+		type BlockHashCount = ConstU64<250>;
+		/// Runtime version.
+		type Version = ();
+		/// Converts a module to an index of this module in the runtime.
+		type PalletInfo = PalletInfo;
+		/// The data to be stored in an account.
+		type AccountData = pallet_balances::AccountData<u64>;
+		/// What to do if a new account is created.
+		type OnNewAccount = ();
+		/// What to do if an account is fully reaped from the system.
+		type OnKilledAccount = ();
+		/// The weight of database operations that the runtime can invoke.
+		type DbWeight = ();
+		/// The basic call filter to use in dispatchable.
+		type BaseCallFilter = Everything;
+		/// Weight information for the extrinsics of this pallet.
+		type SystemWeightInfo = ();
+		/// Block & extrinsics weights: base values and limits.
+		type BlockWeights = ();
+		/// The maximum length of a block (in bytes).
+		type BlockLength = ();
+		/// This is used as an identifier of the chain. 42 is the generic substrate prefix.
+		type SS58Prefix = ();
+		/// The action to take on a Runtime Upgrade
+		type OnSetCode = ();
+		type MaxConsumers = ConstU32<16>;
+	}
+
+	impl pallet_balances::Config for Test {
+		type MaxLocks = ConstU32<50>;
+		/// The type for recording an account's balance.
+		type Balance = u64;
+		/// The ubiquitous event type.
+		type RuntimeEvent = RuntimeEvent;
+		type DustRemoval = ();
+		type ExistentialDeposit = ConstU64<1>;
+		type AccountStore = System;
+		type WeightInfo = ();
+		type MaxReserves = ConstU32<50>;
+		type ReserveIdentifier = [u8; 8];
+	}
+
+	frame_support::parameter_types! {
+		pub const OpenPeriod: u32 = 5;
+		pub const ContinuousPeriods: u32 = 24;
+		pub const MaxMarketPlayers: u32 = 100;
+		pub const MaxProductPerPlayer: u32 = 50;
+		pub const Bound: market_state::Bound = market_state::Bound {
+			feed_in_tarrif: 5,
+			grid_price: 10,
+			min_quantity: 1,
+			max_quantity: 20,
+		};
+	}
+
+	impl Config for Test {
+		type AuthorityId = crypto::TestAuthId;
+		type RuntimeEvent = RuntimeEvent;
+		type OpenPeriod = OpenPeriod;
+		type ContinuousPeriods = ContinuousPeriods;
+		type MaxMarketPlayers = MaxMarketPlayers;
+		type MaxProductPerPlayer = MaxProductPerPlayer;
+		type Bound = Bound;
+	}
+
+	impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for Test
+	where
+		RuntimeCall: From<LocalCall>,
+	{
+		fn create_transaction<
+			C: frame_system::offchain::AppCrypto<Self::Public, Self::Signature>,
+		>(
+			_call: RuntimeCall,
+			_public: MultiSigner,
+			_account: AccountId32,
+			_nonce: u64,
+		) -> Option<(
+			RuntimeCall,
+			<UncheckedExtrinsic as sp_runtime::traits::Extrinsic>::SignaturePayload,
+		)> {
+			None
+		}
+	}
+
+	impl frame_system::offchain::SigningTypes for Test {
+		type Public = MultiSigner;
+		type Signature = MultiSignature;
+	}
+
+	impl<C> frame_system::offchain::SendTransactionTypes<C> for Test
+	where
+		RuntimeCall: From<C>,
+	{
+		type OverarchingCall = RuntimeCall;
+		type Extrinsic = UncheckedExtrinsic;
+	}
+
+	#[test]
+	fn test_validate_solution() {}
 }
