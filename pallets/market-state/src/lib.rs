@@ -237,7 +237,7 @@ pub mod pallet {
 	}
 
 	#[derive(Copy, Clone)]
-	enum ProductType {
+	pub(super) enum ProductType {
 		Bid,
 		Ask,
 	}
@@ -387,11 +387,12 @@ pub mod pallet {
 	}
 
 	/// The aggregated bids/asks at a given price
-	struct AggregatedProducts<T: Config> {
-		price: u64,
-		quantity: u64,
+	#[derive(Eq, PartialEq)]
+	pub(super) struct AggregatedProducts<T: Config> {
+		pub(super) price: u64,
+		pub(super) quantity: u64,
 		// Accounts with bids/asks at this price
-		accounts: Vec<T::AccountId>,
+		pub(super) accounts: Vec<T::AccountId>,
 	}
 
 	impl<T: Config> Debug for AggregatedProducts<T> {
@@ -530,7 +531,7 @@ pub mod pallet {
 		/// Computes the aggregated supply/demand.
 		/// Asks are sorted by descending price, while bids are sorted by ascending price.
 		/// For flexible product, we assume the first product is the preferred and only one to aggregate
-		fn aggregate_products(
+		pub(crate) fn aggregate_products(
 			products: PrefixIterator<(
 				T::AccountId,
 				BoundedVec<FlexibleProduct, T::MaxProductPerPlayer>,
@@ -620,7 +621,7 @@ pub mod pallet {
 		/// Bid price is the max a consumer is willing to pay, so it has to >= auction price.
 		/// Ask price is the min a producer/prosumer is willing to pay, so it has to <= auction price.
 		/// Returns the social welfare score
-		fn validate_solution(
+		pub(crate) fn validate_solution(
 			auction_prices: &BoundedVec<AuctionPrice, T::ContinuousPeriods>,
 			bids: &BoundedVec<
 				(T::AccountId, BoundedVec<Option<Product>, T::MaxProductPerPlayer>),
@@ -765,6 +766,7 @@ mod tests {
 	use crate as market_state;
 	use frame_support::traits::Everything;
 	use sp_core::{crypto::AccountId32, ConstU32, ConstU64, H256};
+	use sp_core::bounded::BoundedVec;
 	use sp_runtime::{
 		testing::Header,
 		traits::{BlakeTwo256, IdentityLookup},
@@ -903,6 +905,104 @@ mod tests {
 		type Extrinsic = UncheckedExtrinsic;
 	}
 
+	fn new_test_ext() -> sp_io::TestExternalities {
+		let storage = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
+		sp_io::TestExternalities::new(storage)
+	}
+
+	fn test_account(id: u8) -> AccountId32 {
+		AccountId32::new([id; 32])
+	}
+
+	// Creates bids/asks for an account
+	fn new_products(products: Vec<Vec<Product>>) -> BoundedVec<FlexibleProduct, <Test as Config>::MaxProductPerPlayer> {
+		let mut total_products: BoundedVec<FlexibleProduct, <Test as Config>::MaxProductPerPlayer> = Default::default();
+		for flexible_products in products {
+			let mut bounded_flex_products = FlexibleProduct::default();
+			for p in flexible_products {
+				bounded_flex_products.try_push(p).unwrap();
+			}
+			total_products.try_push(bounded_flex_products).unwrap();
+		}
+		total_products
+	}
+
 	#[test]
-	fn test_validate_solution() {}
+	fn test_aggregate_products() {
+		let account_1 = test_account(1);
+		let account_2 = test_account(2);
+		let account_3 = test_account(3);
+
+		let account_1_products = new_products(vec![
+			vec![
+				Product {
+					price: 1,
+					quantity: 2,
+					start_period: 0,
+					end_period: 2,
+				},
+				Product {
+					price: 2,
+					quantity: 2,
+					start_period: 2,
+					end_period: 4,
+				}
+			],
+			vec![
+				Product {
+					price: 3,
+					quantity: 3,
+					start_period: 0,
+					end_period: 2,
+				},
+				Product {
+					price: 2,
+					quantity: 2,
+					start_period: 1,
+					end_period: 3,
+				}
+			],
+		]);
+
+		<Bids<Test>>::insert(account_1.clone(), account_1_products);
+		let bids = Pallet::<Test>::aggregate_products(<Bids<Test>>::iter(), ProductType::Bid);
+		assert_eq!(bids.len(), <Test as Config>::ContinuousPeriods::get() as usize);
+		assert_eq!(bids[0], vec![
+			AggregatedProducts::<Test>{
+				price: 1,
+				quantity: 2,
+				accounts: vec![account_1.clone()],
+			},
+			AggregatedProducts::<Test>{
+				price: 3,
+				quantity: 5,
+				accounts: vec![account_1.clone()],
+			},
+		]);
+		assert_eq!(bids[1], vec![
+			AggregatedProducts::<Test>{
+				price: 1,
+				quantity: 2,
+				accounts: vec![account_1.clone()],
+			},
+			AggregatedProducts::<Test>{
+				price: 2,
+				quantity: 4,
+				accounts: vec![account_1.clone()],
+			},
+			AggregatedProducts::<Test>{
+				price: 3,
+				quantity: 7,
+				accounts: vec![account_1.clone()],
+			}
+		]);
+	}
+
+	#[test]
+	fn test_validate_solution() {
+		/*let mut ext = new_test_ext();
+		ext.execute_with(|| {
+			assert_eq!(<Stage<Test>>::get(), MARKET_STAGE_OPEN);
+		});*/
+	}
 }
