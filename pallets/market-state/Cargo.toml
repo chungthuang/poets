@@ -33,6 +33,9 @@ sp-io = { git = "https://github.com/paritytech/substrate", default-features = fa
 
 pallet-balances = { git = "https://github.com/paritytech/substrate", default-features = false, "branch" = "polkadot-v0.9.37" }
 
+env_logger = "0.10.0"
+test-log = "0.2.8"
+
 [features]
 default = ["std"]
 runtime-benchmarks = ["frame-benchmarking/runtime-benchmarks"]

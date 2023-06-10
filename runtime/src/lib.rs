@@ -437,6 +437,7 @@ parameter_types! {
 	pub const ContinuousPeriods: u32 = 24;
 	pub const MaxMarketPlayers: u32 = 100;
 	pub const MaxProductPerPlayer: u32 = 50;
+	pub const MaxProducts: u32 = 5000;
 	pub const Bound: market_state::Bound = market_state::Bound {
 		feed_in_tarrif: 5,
 		grid_price: 10,
@@ -476,6 +477,7 @@ impl market_state::Config for Runtime {
 	type ContinuousPeriods = ContinuousPeriods;
 	type MaxMarketPlayers = MaxMarketPlayers;
 	type MaxProductPerPlayer = MaxProductPerPlayer;
+	type MaxProducts = MaxProducts;
 	type Bound = Bound;
 }
 

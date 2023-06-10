@@ -15,15 +15,13 @@ use std::sync::Arc;
 
 #[derive(Serialize, Deserialize)]
 pub struct MarketProducts {
-	pub bids: Vec<(EncodedAccountId, Vec<FlexibleProduct>)>,
-	pub asks: Vec<(EncodedAccountId, Vec<FlexibleProduct>)>,
+	pub bids: Vec<(ProductId, FlexibleProduct)>,
+	pub asks: Vec<(ProductId, FlexibleProduct)>,
 	pub stage: u64,
 	pub periods: u32,
 	pub grid_price: u64,
 	pub feed_in_tariff: u64,
 }
-
-type EncodedAccountId = Vec<u8>;
 
 #[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Product {
@@ -33,6 +31,7 @@ pub struct Product {
 	pub end_period: u32,
 }
 
+type ProductId = u32;
 type FlexibleProduct = Vec<Product>;
 
 #[rpc(client, server)]
@@ -70,20 +69,16 @@ where
 				bids: s
 					.bids
 					.into_iter()
-					.map(|(account, bids)| {
+					.map(|(id, flexible_bids)| {
 						(
-							account,
-							bids.into_iter()
-								.map(|flexible_bid| {
-									flexible_bid
-										.into_iter()
-										.map(|b| Product {
-											price: b.price,
-											quantity: b.quantity,
-											start_period: b.start_period,
-											end_period: b.end_period,
-										})
-										.collect()
+							id,
+							flexible_bids
+								.into_iter()
+								.map(|b| Product {
+									price: b.price,
+									quantity: b.quantity,
+									start_period: b.start_period,
+									end_period: b.end_period,
 								})
 								.collect(),
 						)
@@ -92,20 +87,16 @@ where
 				asks: s
 					.asks
 					.into_iter()
-					.map(|(account, asks)| {
+					.map(|(id, flexible_asks)| {
 						(
-							account,
-							asks.into_iter()
-								.map(|flexible_ask| {
-									flexible_ask
-										.into_iter()
-										.map(|a| Product {
-											price: a.price,
-											quantity: a.quantity,
-											start_period: a.start_period,
-											end_period: a.end_period,
-										})
-										.collect()
+							id,
+							flexible_asks
+								.into_iter()
+								.map(|a| Product {
+									price: a.price,
+									quantity: a.quantity,
+									start_period: a.start_period,
+									end_period: a.end_period,
 								})
 								.collect(),
 						)
