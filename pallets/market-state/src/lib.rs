@@ -177,7 +177,7 @@ pub mod pallet {
 	type AuctionPrice = u64;
 	// The price that means no auction took place.
 	const NO_AUCTION_PRICE: AuctionPrice = 0;
-	type SocialWelfare = u64;
+	pub(crate) type SocialWelfare = u64;
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub (super) trait Store)]
@@ -476,12 +476,37 @@ pub mod pallet {
 				// Beginning of clearing stage
 				if <Stage<T>>::get() == MARKET_STAGE_CLEARING {
 					Self::deposit_event(Event::RunDoubleAuction);
+					let signer = Signer::<T, T::AuthorityId>::all_accounts();
+					if !signer.can_sign() {
+						log::error!(
+							"No local accounts available. Consider adding one via `author_insertKey` RPC."
+						);
+						return
+					}
+
 					match Self::solve_double_auction() {
-						Ok(_) => {
-							log::info!("Submitted solution from double auction");
+						Ok(Some(s)) => {
+							let results =
+								signer.send_signed_transaction(|_account| Call::submit_solution {
+									auction_prices: s.auction_prices.clone(),
+									accepted_bids: s.accepted_bids.clone(),
+									accepted_asks: s.accepted_asks.clone(),
+								});
+
+							match results.get(0) {
+								Some((_account, result)) => {
+									log::error!("Failed to submit double auction transaction, error: {result:?}");
+								},
+								None => {
+									log::info!("Submitted double auction transaction");
+								},
+							};
+						},
+						Ok(None) => {
+							log::warn!("Double auction found no solution");
 						},
 						Err(err) => {
-							log::error!("Double auction error: {err:?}");
+							log::error!("Failed to solve double auction, error: {err:?}");
 						},
 					};
 				}
@@ -494,6 +519,14 @@ pub mod pallet {
 	pub(super) struct AggregatedProducts {
 		pub(super) price: u64,
 		pub(super) quantity: u64,
+	}
+
+	pub(super) struct Solution<T: Config> {
+		pub(super) auction_prices: BoundedVec<AuctionPrice, T::ContinuousPeriods>,
+		// For each account, provide a vector of which bids are accepted.
+		// Each bid is represented by the product ID and flexible product index
+		pub(super) accepted_bids: BoundedVec<(ProductId, SelectedFlexibleLoad), T::MaxProducts>,
+		pub(super) accepted_asks: BoundedVec<(ProductId, SelectedFlexibleLoad), T::MaxProducts>,
 	}
 
 	impl<T: Config> Pallet<T> {
@@ -631,15 +664,7 @@ pub mod pallet {
 			Ok((social_welfare_score, quantities))
 		}
 
-		fn solve_double_auction() -> Result<(), Error<T>> {
-			let signer = Signer::<T, T::AuthorityId>::all_accounts();
-			if !signer.can_sign() {
-				log::error!(
-					"No local accounts available. Consider adding one via `author_insertKey` RPC."
-				);
-				return Err(Error::NoSigner)
-			}
-
+		pub(crate) fn solve_double_auction() -> Result<Option<Solution<T>>, Error<T>> {
 			let multi_period_aggregated_bids =
 				Self::aggregate_products(<Bids<T>>::iter(), ProductType::Bid);
 			let multi_period_aggregate_asks =
@@ -678,17 +703,12 @@ pub mod pallet {
 
 			let accepted_bids = Self::double_auction_result(&auction_prices, ProductType::Bid)?;
 			let accepted_asks = Self::double_auction_result(&auction_prices, ProductType::Ask)?;
-			log::info!("Double auction ");
+			log::info!("Double auction accepted bids {accepted_bids:?}, asks {accepted_asks:?}");
 
-			let results = signer.send_signed_transaction(|_account| Call::submit_solution {
-				auction_prices: auction_prices.clone(),
-				accepted_bids: accepted_bids.clone(),
-				accepted_asks: accepted_asks.clone(),
-			});
-
-			match results.get(0) {
-				Some((_account, result)) => result.map_err(|_| Error::TransactionFailed),
-				None => Ok(()),
+			if !accepted_bids.is_empty() && !accepted_asks.is_empty() {
+				Ok(Some(Solution { auction_prices, accepted_bids, accepted_asks }))
+			} else {
+				Ok(None)
 			}
 		}
 
@@ -764,7 +784,6 @@ pub mod pallet {
 					}
 				}
 			}
-			log::debug!("Sorted {:?}", sorted);
 
 			let mut aggregated: Vec<Vec<AggregatedProducts>> = Vec::with_capacity(periods);
 			for sorted_by_period in sorted {
@@ -773,13 +792,13 @@ pub mod pallet {
 					if let Some(last_level) = aggregated_by_period.last_mut() {
 						if product.price == last_level.price {
 							last_level.quantity += product.quantity;
-						} else {
-							aggregated_by_period.push(AggregatedProducts {
-								price: product.price,
-								quantity: product.quantity,
-							});
+							continue
 						}
 					}
+					aggregated_by_period.push(AggregatedProducts {
+						price: product.price,
+						quantity: product.quantity,
+					});
 				}
 				aggregated.push(aggregated_by_period);
 			}
@@ -824,8 +843,8 @@ impl<T: Config> Pallet<T> {
 mod tests {
 	use super::*;
 	use crate as market_state;
-	use frame_support::traits::Everything;
-	use sp_core::{bounded::BoundedVec, crypto::AccountId32, ConstU32, ConstU64, H256};
+	use frame_support::{dispatch::RawOrigin, traits::Everything};
+	use sp_core::{crypto::AccountId32, ConstU32, ConstU64, H256};
 	use sp_runtime::{
 		testing::Header,
 		traits::{BlakeTwo256, IdentityLookup},
@@ -909,11 +928,14 @@ mod tests {
 		type ReserveIdentifier = [u8; 8];
 	}
 
+	const CONTINUOUS_PERIODS: u32 = 24;
+
 	frame_support::parameter_types! {
 		pub const OpenPeriod: u32 = 5;
-		pub const ContinuousPeriods: u32 = 24;
+		pub const ContinuousPeriods: u32 = CONTINUOUS_PERIODS;
 		pub const MaxMarketPlayers: u32 = 100;
 		pub const MaxProductPerPlayer: u32 = 50;
+		pub const MaxProducts: u32 = 5000;
 		pub const Bound: market_state::Bound = market_state::Bound {
 			feed_in_tarrif: 5,
 			grid_price: 10,
@@ -929,6 +951,7 @@ mod tests {
 		type ContinuousPeriods = ContinuousPeriods;
 		type MaxMarketPlayers = MaxMarketPlayers;
 		type MaxProductPerPlayer = MaxProductPerPlayer;
+		type MaxProducts = MaxProducts;
 		type Bound = Bound;
 	}
 
@@ -969,86 +992,270 @@ mod tests {
 		sp_io::TestExternalities::new(storage)
 	}
 
-	fn test_account(id: u8) -> AccountId32 {
-		AccountId32::new([id; 32])
-	}
-
 	// Creates bids/asks for an account
-	fn new_products(
-		products: Vec<Vec<Product>>,
-	) -> BoundedVec<FlexibleProduct, <Test as Config>::MaxProductPerPlayer> {
-		let mut total_products: BoundedVec<FlexibleProduct, <Test as Config>::MaxProductPerPlayer> =
-			Default::default();
-		for flexible_products in products {
-			let mut bounded_flex_products = FlexibleProduct::default();
-			for p in flexible_products {
-				bounded_flex_products.try_push(p).unwrap();
-			}
-			total_products.try_push(bounded_flex_products).unwrap();
+	fn new_flexible_product(products: Vec<Product>) -> FlexibleProduct {
+		let mut bounded_flex_product = FlexibleProduct::default();
+		for p in products {
+			bounded_flex_product.try_push(p).unwrap();
 		}
-		total_products
+		bounded_flex_product
 	}
 
 	#[test_log::test]
 	fn test_aggregate_products() {
 		let mut ext = new_test_ext();
 
-		let account_1 = test_account(1);
-		let account_2 = test_account(2);
-		let account_3 = test_account(3);
-
-		let account_1_products = new_products(vec![
-			vec![
-				Product { price: 1, quantity: 2, start_period: 0, end_period: 2 },
-				Product { price: 2, quantity: 2, start_period: 2, end_period: 4 },
-			],
-			vec![
-				Product { price: 3, quantity: 3, start_period: 0, end_period: 2 },
-				Product { price: 2, quantity: 2, start_period: 1, end_period: 3 },
-			],
-		]);
-
 		ext.execute_with(|| {
-			<Bids<Test>>::insert(account_1.clone(), account_1_products);
-			let bids = Pallet::<Test>::aggregate_products(<Bids<Test>>::iter(), ProductType::Bid);
-			assert_eq!(bids.len(), <Test as Config>::ContinuousPeriods::get() as usize);
-			/*assert_eq!(bids[0], vec![
-				AggregatedProducts{
-					price: 1,
-					quantity: 2,
-					accounts: vec![account_1.clone()],
-				},
-				AggregatedProducts{
+			// Only first schedule of flexible product is used by double auction
+			let product_1 = (
+				product_id(1),
+				new_flexible_product(vec![
+					Product { price: 1, quantity: 2, start_period: 0, end_period: 2 },
+					Product { price: 2, quantity: 2, start_period: 2, end_period: 4 },
+				]),
+			);
+
+			let product_2 = (
+				product_id(2),
+				new_flexible_product(vec![
+					Product { price: 3, quantity: 3, start_period: 0, end_period: 2 },
+					Product { price: 2, quantity: 2, start_period: 1, end_period: 3 },
+				]),
+			);
+
+			let product_3 = (
+				product_id(3),
+				new_flexible_product(vec![Product {
 					price: 3,
 					quantity: 5,
-					accounts: vec![account_1.clone()],
-				},
-			]);
-			assert_eq!(bids[1], vec![
-				AggregatedProducts{
-					price: 1,
-					quantity: 2,
-					accounts: vec![account_1.clone()],
-				},
-				AggregatedProducts{
-					price: 2,
-					quantity: 4,
-					accounts: vec![account_1.clone()],
-				},
-				AggregatedProducts{
-					price: 3,
-					quantity: 7,
-					accounts: vec![account_1.clone()],
-				}
-			]);*/
+					start_period: 1,
+					end_period: 3,
+				}]),
+			);
+
+			<Bids<Test>>::insert(product_1.0, product_1.1.clone());
+			<Bids<Test>>::insert(product_2.0, product_2.1.clone());
+			<Bids<Test>>::insert(product_3.0, product_3.1.clone());
+			let bids = Pallet::<Test>::aggregate_products(<Bids<Test>>::iter(), ProductType::Bid);
+			assert_eq!(bids.len(), <Test as Config>::ContinuousPeriods::get() as usize);
+			assert_eq!(
+				bids[0],
+				vec![
+					AggregatedProducts { price: 3, quantity: 3 },
+					AggregatedProducts { price: 1, quantity: 2 },
+				]
+			);
+			assert_eq!(
+				bids[1],
+				vec![
+					AggregatedProducts { price: 3, quantity: 8 },
+					AggregatedProducts { price: 1, quantity: 2 },
+				]
+			);
+			assert_eq!(bids[2], vec![AggregatedProducts { price: 3, quantity: 5 },]);
+
+			<Asks<Test>>::insert(product_1.0, product_1.1);
+			<Asks<Test>>::insert(product_2.0, product_2.1);
+			let asks = Pallet::<Test>::aggregate_products(<Asks<Test>>::iter(), ProductType::Ask);
+			assert_eq!(asks.len(), <Test as Config>::ContinuousPeriods::get() as usize);
+			assert_eq!(
+				asks[0],
+				vec![
+					AggregatedProducts { price: 1, quantity: 2 },
+					AggregatedProducts { price: 3, quantity: 3 },
+				]
+			);
+			assert_eq!(
+				asks[1],
+				vec![
+					AggregatedProducts { price: 1, quantity: 2 },
+					AggregatedProducts { price: 3, quantity: 3 },
+				]
+			);
+			assert_eq!(bids[2], vec![AggregatedProducts { price: 3, quantity: 5 },]);
 		});
 	}
 
 	#[test_log::test]
-	fn test_validate_solution() {
-		/*let mut ext = new_test_ext();
+	fn test_validate_double_auction_solution() {
+		let mut ext = new_test_ext();
+
 		ext.execute_with(|| {
-			assert_eq!(<Stage<Test>>::get(), MARKET_STAGE_OPEN);
-		});*/
+			assert!(Pallet::<Test>::solve_double_auction().unwrap().is_none());
+
+			let bid_price = 5;
+			let quantity = 2;
+			let end_period = 10;
+			let bid_1 = (
+				product_id(1),
+				new_flexible_product(vec![Product {
+					price: bid_price,
+					quantity,
+					start_period: 0,
+					end_period,
+				}]),
+			);
+			<Bids<Test>>::insert(bid_1.0, bid_1.1.clone());
+
+			let ask_price = 3;
+			let ask_1 = (
+				product_id(1),
+				new_flexible_product(vec![Product {
+					price: ask_price,
+					quantity,
+					start_period: 0,
+					end_period,
+				}]),
+			);
+			<Asks<Test>>::insert(ask_1.0, ask_1.1.clone());
+
+			let solution = Pallet::<Test>::solve_double_auction().unwrap().unwrap();
+			let mut auction_price = [0; CONTINUOUS_PERIODS as usize];
+			for i in 0..10 {
+				auction_price[i] = bid_price;
+			}
+			assert_eq!(solution.auction_prices.to_vec(), auction_price);
+			assert_eq!(solution.accepted_bids.to_vec(), vec![(bid_1.0, selected_flexible_load(0))]);
+			assert_eq!(solution.accepted_asks.to_vec(), vec![(ask_1.0, selected_flexible_load(0))]);
+
+			let account_1 = account_id(1);
+			let origin = RawOrigin::Signed(account_1);
+			let result = Pallet::<Test>::submit_solution(
+				origin.clone().into(),
+				solution.auction_prices.clone(),
+				solution.accepted_bids.clone(),
+				solution.accepted_asks.clone(),
+			);
+			assert!(result.is_err());
+			assert!(<BestSolution<Test>>::get().is_none());
+
+			<Stage<Test>>::set(MARKET_STAGE_CLEARING);
+
+			let result = Pallet::<Test>::submit_solution(
+				origin.clone().into(),
+				solution.auction_prices.clone(),
+				solution.accepted_bids.clone(),
+				solution.accepted_asks.clone(),
+			);
+			assert!(result.is_ok());
+
+			let social_welfare = (bid_price * quantity - ask_price * quantity) * end_period as u64;
+			validate_optimal_solution(&solution, social_welfare);
+
+			let bid_price = bid_price * 2;
+			let bid_2 = (
+				product_id(2),
+				new_flexible_product(vec![Product {
+					price: bid_price,
+					quantity,
+					start_period: 0,
+					end_period,
+				}]),
+			);
+			<Bids<Test>>::insert(bid_2.0, bid_2.1.clone());
+
+			let solution = Pallet::<Test>::solve_double_auction().unwrap().unwrap();
+			let mut auction_prices = [0; CONTINUOUS_PERIODS as usize];
+			for i in 0..10 {
+				auction_prices[i] = bid_price;
+			}
+			assert_eq!(solution.auction_prices.to_vec(), auction_prices);
+			assert_eq!(solution.accepted_bids.to_vec(), vec![(bid_2.0, selected_flexible_load(0))]);
+			assert_eq!(solution.accepted_asks.to_vec(), vec![(ask_1.0, selected_flexible_load(0))]);
+
+			let result = Pallet::<Test>::submit_solution(
+				origin.clone().into(),
+				solution.auction_prices.clone(),
+				solution.accepted_bids.clone(),
+				solution.accepted_asks.clone(),
+			);
+			assert!(result.is_ok());
+
+			let social_welfare = (bid_price * quantity - ask_price * quantity) * end_period as u64;
+			validate_optimal_solution(&solution, social_welfare);
+
+			let bid_3 = (
+				product_id(3),
+				new_flexible_product(vec![Product {
+					price: bid_price - 1,
+					quantity,
+					start_period: 0,
+					end_period,
+				}]),
+			);
+			<Bids<Test>>::insert(bid_3.0, bid_3.1.clone());
+
+			// Solution should remain unchanged
+			let new_solution = Pallet::<Test>::solve_double_auction().unwrap().unwrap();
+			assert_eq!(new_solution.auction_prices, solution.auction_prices);
+			assert_eq!(new_solution.accepted_bids, solution.accepted_bids);
+			assert_eq!(new_solution.accepted_asks, solution.accepted_asks);
+
+			let result = Pallet::<Test>::submit_solution(
+				origin.clone().into(),
+				solution.auction_prices.clone(),
+				vec![(bid_3.0, selected_flexible_load(0))].try_into().unwrap(),
+				solution.accepted_asks.clone(),
+			);
+			// bid 3 is lower than auction price
+			assert!(result.is_err());
+
+			for i in 0..10 {
+				auction_prices[i] -= 1;
+			}
+			let result = Pallet::<Test>::submit_solution(
+				origin.clone().into(),
+				auction_prices.to_vec().try_into().unwrap(),
+				vec![(bid_3.0, selected_flexible_load(0))].try_into().unwrap(),
+				solution.accepted_asks.clone(),
+			);
+			assert!(result.is_ok());
+
+			// transaction succeed, but solution didn't change because it's social welfare isn't better
+			validate_optimal_solution(&solution, social_welfare);
+
+			let ask_2 = (
+				product_id(2),
+				new_flexible_product(vec![Product {
+					price: ask_price,
+					quantity,
+					start_period: 0,
+					end_period,
+				}]),
+			);
+
+			let result = Pallet::<Test>::submit_solution(
+				origin.clone().into(),
+				solution.auction_prices.clone(),
+				solution.accepted_bids.clone(),
+				vec![(ask_2.0, selected_flexible_load(0))].try_into().unwrap(),
+			);
+			// Cannot accept ask that doesn't exist
+			assert!(result.is_err());
+		})
+	}
+
+	fn account_id(id: u8) -> AccountId32 {
+		AccountId32::new([id; 32])
+	}
+
+	fn product_id(id: u32) -> ProductId {
+		id
+	}
+
+	fn selected_flexible_load(index: u32) -> SelectedFlexibleLoad {
+		index
+	}
+
+	fn validate_optimal_solution(solution: &Solution<Test>, social_welfare: SocialWelfare) {
+		let (_account, optimal_auction_price, optimal_social_welfare) =
+			<BestSolution<Test>>::get().unwrap();
+		assert_eq!(
+			optimal_social_welfare,
+			social_welfare,
+		);
+		assert_eq!(optimal_auction_price, solution.auction_prices);
+		assert_eq!(<AcceptedBids<Test>>::get(), solution.accepted_bids);
+		assert_eq!(<AcceptedAsks<Test>>::get(), solution.accepted_asks);
 	}
 }
