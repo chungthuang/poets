@@ -35,8 +35,9 @@ use sp_std::marker::PhantomData;
 
 /// Weight functions needed for market_state.
 pub trait WeightInfo {
-	fn submit_bids(c: u32, l: u32, ) -> Weight;
-	fn submit_asks(c: u32, l: u32, ) -> Weight;
+	fn submit_bids(c: u32, ) -> Weight;
+	fn submit_asks(c: u32, ) -> Weight;
+	fn submit_solution(b: u32, a: u32, ) -> Weight;
 }
 
 /// Weights for market_state using the Substrate node and recommended hardware.
@@ -47,14 +48,11 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	// Storage: MarketState LastBidId (r:1 w:1)
 	// Storage: MarketState Bids (r:0 w:1)
 	/// The range of component `c` is `[1, 50]`.
-	/// The range of component `l` is `[1, 5]`.
-	fn submit_bids(c: u32, l: u32, ) -> Weight {
-		// Minimum execution time: 24_838 nanoseconds.
-		Weight::from_ref_time(209_398)
-			// Standard Error: 127_138
-			.saturating_add(Weight::from_ref_time(2_071_619).saturating_mul(c.into()))
-			// Standard Error: 1_563_958
-			.saturating_add(Weight::from_ref_time(4_408_655).saturating_mul(l.into()))
+	fn submit_bids(c: u32, ) -> Weight {
+		// Minimum execution time: 26_438 nanoseconds.
+		Weight::from_ref_time(58_329_155)
+			// Standard Error: 666_157
+			.saturating_add(Weight::from_ref_time(2_304_758).saturating_mul(c.into()))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(2))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(c.into())))
@@ -64,17 +62,34 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	// Storage: MarketState LastAskId (r:1 w:1)
 	// Storage: MarketState Asks (r:0 w:1)
 	/// The range of component `c` is `[1, 50]`.
-	/// The range of component `l` is `[1, 5]`.
-	fn submit_asks(c: u32, l: u32, ) -> Weight {
-		// Minimum execution time: 25_344 nanoseconds.
-		Weight::from_ref_time(11_944_587)
-			// Standard Error: 54_769
-			.saturating_add(Weight::from_ref_time(1_923_411).saturating_mul(c.into()))
-			// Standard Error: 673_732
-			.saturating_add(Weight::from_ref_time(2_729_251).saturating_mul(l.into()))
+	fn submit_asks(c: u32, ) -> Weight {
+		// Minimum execution time: 28_234 nanoseconds.
+		Weight::from_ref_time(37_827_526)
+			// Standard Error: 145_877
+			.saturating_add(Weight::from_ref_time(1_835_690).saturating_mul(c.into()))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(2))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(c.into())))
+	}
+	// Storage: MarketState Stage (r:1 w:0)
+	// Storage: MarketState Bids (r:1 w:0)
+	// Storage: MarketState Asks (r:5000 w:0)
+	// Storage: MarketState BestSolution (r:1 w:1)
+	// Storage: MarketState AcceptedAsks (r:0 w:1)
+	// Storage: MarketState AcceptedBids (r:0 w:1)
+	/// The range of component `b` is `[1, 5000]`.
+	/// The range of component `a` is `[1, 5000]`.
+	fn submit_solution(b: u32, a: u32, ) -> Weight {
+		// Minimum execution time: 18_820_582 nanoseconds.
+		Weight::from_ref_time(13_018_706_660)
+			// Standard Error: 417_533
+			.saturating_add(Weight::from_ref_time(2_706_256).saturating_mul(b.into()))
+			// Standard Error: 417_533
+			.saturating_add(Weight::from_ref_time(1_749_840).saturating_mul(a.into()))
+			.saturating_add(T::DbWeight::get().reads(2))
+			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(b.into())))
+			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(a.into())))
+			.saturating_add(T::DbWeight::get().writes(3))
 	}
 }
 
@@ -85,14 +100,11 @@ impl WeightInfo for () {
 	// Storage: MarketState LastBidId (r:1 w:1)
 	// Storage: MarketState Bids (r:0 w:1)
 	/// The range of component `c` is `[1, 50]`.
-	/// The range of component `l` is `[1, 5]`.
-	fn submit_bids(c: u32, l: u32, ) -> Weight {
-		// Minimum execution time: 24_838 nanoseconds.
-		Weight::from_ref_time(209_398)
-			// Standard Error: 127_138
-			.saturating_add(Weight::from_ref_time(2_071_619).saturating_mul(c.into()))
-			// Standard Error: 1_563_958
-			.saturating_add(Weight::from_ref_time(4_408_655).saturating_mul(l.into()))
+	fn submit_bids(c: u32, ) -> Weight {
+		// Minimum execution time: 26_438 nanoseconds.
+		Weight::from_ref_time(58_329_155)
+			// Standard Error: 666_157
+			.saturating_add(Weight::from_ref_time(2_304_758).saturating_mul(c.into()))
 			.saturating_add(RocksDbWeight::get().reads(3))
 			.saturating_add(RocksDbWeight::get().writes(2))
 			.saturating_add(RocksDbWeight::get().writes((1_u64).saturating_mul(c.into())))
@@ -102,16 +114,33 @@ impl WeightInfo for () {
 	// Storage: MarketState LastAskId (r:1 w:1)
 	// Storage: MarketState Asks (r:0 w:1)
 	/// The range of component `c` is `[1, 50]`.
-	/// The range of component `l` is `[1, 5]`.
-	fn submit_asks(c: u32, l: u32, ) -> Weight {
-		// Minimum execution time: 25_344 nanoseconds.
-		Weight::from_ref_time(11_944_587)
-			// Standard Error: 54_769
-			.saturating_add(Weight::from_ref_time(1_923_411).saturating_mul(c.into()))
-			// Standard Error: 673_732
-			.saturating_add(Weight::from_ref_time(2_729_251).saturating_mul(l.into()))
+	fn submit_asks(c: u32, ) -> Weight {
+		// Minimum execution time: 28_234 nanoseconds.
+		Weight::from_ref_time(37_827_526)
+			// Standard Error: 145_877
+			.saturating_add(Weight::from_ref_time(1_835_690).saturating_mul(c.into()))
 			.saturating_add(RocksDbWeight::get().reads(3))
 			.saturating_add(RocksDbWeight::get().writes(2))
 			.saturating_add(RocksDbWeight::get().writes((1_u64).saturating_mul(c.into())))
+	}
+	// Storage: MarketState Stage (r:1 w:0)
+	// Storage: MarketState Bids (r:1 w:0)
+	// Storage: MarketState Asks (r:5000 w:0)
+	// Storage: MarketState BestSolution (r:1 w:1)
+	// Storage: MarketState AcceptedAsks (r:0 w:1)
+	// Storage: MarketState AcceptedBids (r:0 w:1)
+	/// The range of component `b` is `[1, 5000]`.
+	/// The range of component `a` is `[1, 5000]`.
+	fn submit_solution(b: u32, a: u32, ) -> Weight {
+		// Minimum execution time: 18_820_582 nanoseconds.
+		Weight::from_ref_time(13_018_706_660)
+			// Standard Error: 417_533
+			.saturating_add(Weight::from_ref_time(2_706_256).saturating_mul(b.into()))
+			// Standard Error: 417_533
+			.saturating_add(Weight::from_ref_time(1_749_840).saturating_mul(a.into()))
+			.saturating_add(RocksDbWeight::get().reads(2))
+			.saturating_add(RocksDbWeight::get().reads((1_u64).saturating_mul(b.into())))
+			.saturating_add(RocksDbWeight::get().reads((1_u64).saturating_mul(a.into())))
+			.saturating_add(RocksDbWeight::get().writes(3))
 	}
 }

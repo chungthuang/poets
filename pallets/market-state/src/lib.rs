@@ -289,7 +289,7 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {
 		/// Submits a bid quantity and price
 		#[pallet::call_index(0)]
-		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
+		#[pallet::weight(<T as Config>::WeightInfo::submit_bids(bids.len() as u32))]
 		pub fn submit_bids(
 			origin: OriginFor<T>,
 			bids: BoundedVec<(Option<ProductId>, FlexibleProduct), T::MaxProductPerPlayer>,
@@ -338,7 +338,7 @@ pub mod pallet {
 
 		/// Submits an ask quantity and price
 		#[pallet::call_index(1)]
-		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
+		#[pallet::weight(<T as Config>::WeightInfo::submit_asks(asks.len() as u32))]
 		pub fn submit_asks(
 			origin: OriginFor<T>,
 			asks: BoundedVec<(Option<ProductId>, FlexibleProduct), T::MaxProductPerPlayer>,
@@ -386,7 +386,7 @@ pub mod pallet {
 
 		/// Submits a solution. Will be rejected if validation fails
 		#[pallet::call_index(2)]
-		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
+		#[pallet::weight(<T as Config>::WeightInfo::submit_solution(accepted_bids.len() as u32, accepted_asks.len() as u32))]
 		pub fn submit_solution(
 			origin: OriginFor<T>,
 			auction_prices: BoundedVec<AuctionPrice, T::ContinuousPeriods>,
@@ -395,6 +395,7 @@ pub mod pallet {
 			accepted_bids: BoundedVec<(ProductId, SelectedFlexibleLoad), T::MaxProducts>,
 			accepted_asks: BoundedVec<(ProductId, SelectedFlexibleLoad), T::MaxProducts>,
 		) -> DispatchResultWithPostInfo {
+			log::info!("bids {}, asks {}", accepted_bids.len(), accepted_asks.len());
 			let sender = ensure_signed(origin)?;
 
 			if <Stage<T>>::get() != MARKET_STAGE_CLEARING {

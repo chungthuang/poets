@@ -6,7 +6,6 @@ use sp_runtime::{
 	traits::{BlakeTwo256, IdentityLookup},
 	MultiSignature, MultiSigner,
 };
-use crate::weights::WeightInfo;
 
 // Configure a mock runtime to test the pallet.
 frame_support::construct_runtime!(
@@ -96,9 +95,9 @@ frame_support::parameter_types! {
 	pub const MaxProductPerPlayer: u32 = 50;
 	pub const MaxProducts: u32 = 5000;
 	pub const Bound: market_state::Bound = market_state::Bound {
-		feed_in_tarrif: 5,
+		feed_in_tarrif: 0,
 		grid_price: 20,
-		min_quantity: 1,
+		min_quantity: 0,
 		max_quantity: 20,
 	};
 }
@@ -106,7 +105,7 @@ frame_support::parameter_types! {
 impl crate::Config for Test {
 	type AuthorityId = crate::crypto::TestAuthId;
 	type RuntimeEvent = RuntimeEvent;
-	type WeightInfo = WeightInfo;
+	type WeightInfo = crate::weights::SubstrateWeight<Test>;
 	type OpenPeriod = OpenPeriod;
 	type ContinuousPeriods = ContinuousPeriods;
 	type MaxMarketPlayers = MaxMarketPlayers;
