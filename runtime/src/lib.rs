@@ -473,6 +473,7 @@ impl pallet_template::Config for Runtime {
 impl market_state::Config for Runtime {
 	type AuthorityId = market_state::crypto::TestAuthId;
 	type RuntimeEvent = RuntimeEvent;
+	type WeightInfo = market_state::weights::SubstrateWeight<Runtime>;
 	type OpenPeriod = OpenPeriod;
 	type ContinuousPeriods = ContinuousPeriods;
 	type MaxMarketPlayers = MaxMarketPlayers;

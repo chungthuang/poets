@@ -7,4 +7,5 @@
     --extrinsic "*" \
     --steps 5 \
     --repeat 5 \
-    --output pallets/market-state/src/weight.rs
+    --output pallets/market-state/src/weights.rs \
+    --template=./.maintain/frame-weight-template.hbs

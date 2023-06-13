@@ -7,7 +7,7 @@ mod benchmarking;
 #[cfg(test)]
 mod mock;
 
-mod weights;
+pub mod weights;
 
 use codec::{Decode, Encode};
 pub use pallet::*;
@@ -66,7 +66,6 @@ pub mod pallet {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		/// Length of each market open period, approximated by block numbers.
-
 		type WeightInfo: WeightInfo;
 		#[pallet::constant]
 		type OpenPeriod: Get<u32>;
@@ -295,7 +294,6 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			bids: BoundedVec<(Option<ProductId>, FlexibleProduct), T::MaxProductPerPlayer>,
 		) -> DispatchResultWithPostInfo {
-			log::info!("Submit bids {}", bids.len());
 			let sender = ensure_signed(origin)?;
 
 			if <Stage<T>>::get() != MARKET_STAGE_OPEN {

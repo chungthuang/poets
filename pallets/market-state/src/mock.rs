@@ -6,6 +6,7 @@ use sp_runtime::{
 	traits::{BlakeTwo256, IdentityLookup},
 	MultiSignature, MultiSigner,
 };
+use crate::weights::WeightInfo;
 
 // Configure a mock runtime to test the pallet.
 frame_support::construct_runtime!(
@@ -105,6 +106,7 @@ frame_support::parameter_types! {
 impl crate::Config for Test {
 	type AuthorityId = crate::crypto::TestAuthId;
 	type RuntimeEvent = RuntimeEvent;
+	type WeightInfo = WeightInfo;
 	type OpenPeriod = OpenPeriod;
 	type ContinuousPeriods = ContinuousPeriods;
 	type MaxMarketPlayers = MaxMarketPlayers;
