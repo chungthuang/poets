@@ -96,9 +96,9 @@ frame_support::parameter_types! {
 	pub const MaxProducts: u32 = 5000;
 	pub const Bound: market_state::Bound = market_state::Bound {
 		feed_in_tarrif: 0,
-		grid_price: 20,
+		grid_price: 1000,
 		min_quantity: 0,
-		max_quantity: 20,
+		max_quantity: 1000,
 	};
 }
 

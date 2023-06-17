@@ -1100,6 +1100,306 @@ mod tests {
 		})
 	}
 
+	// Data from table 3 of A novel decentralized platform for peer-to-peer energy trading market with
+	// blockchain technology paper
+	#[test_log::test]
+	fn test_validate_double_auction_no_solution() {
+		let mut ext = new_test_ext();
+
+		ext.execute_with(|| {
+			assert!(Pallet::<Test>::solve_double_auction().unwrap().is_none());
+
+			let account1_p1_a1 = (
+				product_id(1),
+				new_flexible_product(vec![Product {
+					price: 150,
+					quantity: 101,
+					start_period: 0,
+					end_period: 1,
+				}]),
+			);
+			<Asks<Test>>::insert(account1_p1_a1.0, account1_p1_a1.1.clone());
+
+			let account1_p2_a1 = (
+				product_id(2),
+				new_flexible_product(vec![Product {
+					price: 200,
+					quantity: 42,
+					start_period: 1,
+					end_period: 2,
+				}]),
+			);
+			<Asks<Test>>::insert(account1_p2_a1.0, account1_p2_a1.1.clone());
+
+			let account1_p2_a2 = (
+				product_id(3),
+				new_flexible_product(vec![Product {
+					price: 150,
+					quantity: 63,
+					start_period: 1,
+					end_period: 2,
+				}]),
+			);
+			<Asks<Test>>::insert(account1_p2_a2.0, account1_p2_a2.1.clone());
+
+			let account1_p3_a1 = (
+				product_id(4),
+				new_flexible_product(vec![Product {
+					price: 100,
+					quantity: 79,
+					start_period: 2,
+					end_period: 3,
+				}]),
+			);
+			<Asks<Test>>::insert(account1_p3_a1.0, account1_p3_a1.1.clone());
+
+			let account1_p3_a2 = (
+				product_id(5),
+				new_flexible_product(vec![Product {
+					price: 150,
+					quantity: 85,
+					start_period: 2,
+					end_period: 3,
+				}]),
+			);
+			<Asks<Test>>::insert(account1_p3_a2.0, account1_p3_a2.1.clone());
+
+			let account1_p3_a3 = (
+				product_id(6),
+				new_flexible_product(vec![Product {
+					price: 100,
+					quantity: 93,
+					start_period: 2,
+					end_period: 3,
+				}]),
+			);
+			<Asks<Test>>::insert(account1_p3_a3.0, account1_p3_a3.1.clone());
+
+			let account1_p4_a1 = (
+				product_id(7),
+				new_flexible_product(vec![Product {
+					price: 50,
+					quantity: 58,
+					start_period: 3,
+					end_period: 4,
+				}]),
+			);
+			<Asks<Test>>::insert(account1_p4_a1.0, account1_p4_a1.1.clone());
+
+			let account1_p4_a2 = (
+				product_id(8),
+				new_flexible_product(vec![Product {
+					price: 50,
+					quantity: 68,
+					start_period: 3,
+					end_period: 4,
+				}]),
+			);
+			<Asks<Test>>::insert(account1_p4_a2.0, account1_p4_a2.1.clone());
+
+			let account2_p1_a1 = (
+				product_id(9),
+				new_flexible_product(vec![Product {
+					price: 125,
+					quantity: 120,
+					start_period: 0,
+					end_period: 1,
+				}]),
+			);
+			<Asks<Test>>::insert(account2_p1_a1.0, account2_p1_a1.1.clone());
+
+			let account2_p2_a1 = (
+				product_id(10),
+				new_flexible_product(vec![Product {
+					price: 125,
+					quantity: 120,
+					start_period: 1,
+					end_period: 2,
+				}]),
+			);
+			<Asks<Test>>::insert(account2_p2_a1.0, account2_p2_a1.1.clone());
+
+			let account2_p3_a1 = (
+				product_id(11),
+				new_flexible_product(vec![Product {
+					price: 125,
+					quantity: 120,
+					start_period: 2,
+					end_period: 3,
+				}]),
+			);
+			<Asks<Test>>::insert(account2_p3_a1.0, account2_p3_a1.1.clone());
+
+			let account2_p4_a1 = (
+				product_id(12),
+				new_flexible_product(vec![Product {
+					price: 125,
+					quantity: 120,
+					start_period: 3,
+					end_period: 4,
+				}]),
+			);
+			<Asks<Test>>::insert(account2_p4_a1.0, account2_p4_a1.1.clone());
+
+			let account3_a1 = (
+				product_id(13),
+				new_flexible_product(vec![Product {
+					price: 200,
+					quantity: 90,
+					start_period: 0,
+					end_period: 2,
+				}]),
+			);
+			<Asks<Test>>::insert(account3_a1.0, account3_a1.1.clone());
+
+			let account4_p1_b1 = (
+				product_id(1),
+				new_flexible_product(vec![Product {
+					price: 100,
+					quantity: 77,
+					start_period: 0,
+					end_period: 1,
+				}]),
+			);
+			<Bids<Test>>::insert(account4_p1_b1.0, account4_p1_b1.1.clone());
+
+			let account4_p1_b2 = (
+				product_id(2),
+				new_flexible_product(vec![Product {
+					price: 300,
+					quantity: 64,
+					start_period: 0,
+					end_period: 1,
+				}]),
+			);
+			<Bids<Test>>::insert(account4_p1_b2.0, account4_p1_b2.1.clone());
+
+			let account4_p2_b1 = (
+				product_id(3),
+				new_flexible_product(vec![Product {
+					price: 100,
+					quantity: 87,
+					start_period: 1,
+					end_period: 2,
+				}]),
+			);
+			<Bids<Test>>::insert(account4_p2_b1.0, account4_p2_b1.1.clone());
+
+			let account4_p2_b2 = (
+				product_id(4),
+				new_flexible_product(vec![Product {
+					price: 50,
+					quantity: 77,
+					start_period: 1,
+					end_period: 2,
+				}]),
+			);
+			<Bids<Test>>::insert(account4_p2_b2.0, account4_p2_b2.1.clone());
+
+			let account4_p2_b3 = (
+				product_id(5),
+				new_flexible_product(vec![Product {
+					price: 150,
+					quantity: 53,
+					start_period: 1,
+					end_period: 2,
+				}]),
+			);
+			<Bids<Test>>::insert(account4_p2_b3.0, account4_p2_b3.1.clone());
+
+			let account4_p3_b1 = (
+				product_id(6),
+				new_flexible_product(vec![Product {
+					price: 125,
+					quantity: 99,
+					start_period: 2,
+					end_period: 3,
+				}]),
+			);
+			<Bids<Test>>::insert(account4_p3_b1.0, account4_p3_b1.1.clone());
+
+			let account4_p4_b1 = (
+				product_id(7),
+				new_flexible_product(vec![Product {
+					price: 200,
+					quantity: 72,
+					start_period: 3,
+					end_period: 4,
+				}]),
+			);
+			<Bids<Test>>::insert(account4_p4_b1.0, account4_p4_b1.1.clone());
+
+			let account4_p4_b2 = (
+				product_id(8),
+				new_flexible_product(vec![Product {
+					price: 50,
+					quantity: 63,
+					start_period: 3,
+					end_period: 4,
+				}]),
+			);
+			<Bids<Test>>::insert(account4_p4_b2.0, account4_p4_b2.1.clone());
+
+			let account5_p1_b1 = (
+				product_id(9),
+				new_flexible_product(vec![Product {
+					price: 163,
+					quantity: 135,
+					start_period: 0,
+					end_period: 1,
+				}]),
+			);
+			<Bids<Test>>::insert(account5_p1_b1.0, account5_p1_b1.1.clone());
+
+			let account5_p2_b1 = (
+				product_id(10),
+				new_flexible_product(vec![Product {
+					price: 163,
+					quantity: 135,
+					start_period: 1,
+					end_period: 2,
+				}]),
+			);
+			<Bids<Test>>::insert(account5_p2_b1.0, account5_p2_b1.1.clone());
+
+			let account5_p3_b1 = (
+				product_id(11),
+				new_flexible_product(vec![Product {
+					price: 163,
+					quantity: 135,
+					start_period: 1,
+					end_period: 2,
+				}]),
+			);
+			<Bids<Test>>::insert(account5_p3_b1.0, account5_p3_b1.1.clone());
+
+			let account5_p4_b1 = (
+				product_id(12),
+				new_flexible_product(vec![Product {
+					price: 163,
+					quantity: 135,
+					start_period: 1,
+					end_period: 2,
+				}]),
+			);
+			<Bids<Test>>::insert(account5_p4_b1.0, account5_p4_b1.1.clone());
+
+			let account6_b1 = (
+				product_id(13),
+				new_flexible_product(vec![Product {
+					price: 600,
+					quantity: 60,
+					start_period: 2,
+					end_period: 4,
+				}]),
+			);
+			<Bids<Test>>::insert(account6_b1.0, account6_b1.1.clone());
+
+			let solution = Pallet::<Test>::solve_double_auction().unwrap();
+			assert!(solution.is_none());
+		})
+	}
+
 	fn account_id(id: u8) -> AccountId32 {
 		AccountId32::new([id; 32])
 	}
