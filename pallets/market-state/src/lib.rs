@@ -92,6 +92,8 @@ pub mod pallet {
 		pub grid_price: u64,
 		pub min_quantity: u64,
 		pub max_quantity: u64,
+		// What percentage of supply and demand quantity mismatch can we tolerate
+		pub quantity_mismatch_margin: u32,
 	}
 
 	#[pallet::event]
@@ -110,8 +112,8 @@ pub mod pallet {
 		/// A valid solution was submitted
 		Solution {
 			auction_prices: BoundedVec<AuctionPrice, T::ContinuousPeriods>,
-			accepted_bids: BoundedVec<(ProductId, SelectedFlexibleLoad), T::MaxProducts>,
-			accepted_asks: BoundedVec<(ProductId, SelectedFlexibleLoad), T::MaxProducts>,
+			accepted_bids: BoundedVec<AcceptedProduct, T::MaxProducts>,
+			accepted_asks: BoundedVec<AcceptedProduct, T::MaxProducts>,
 			social_welfare: u64,
 		},
 		BeginOpenMarket,
@@ -177,12 +179,12 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn get_accepted_bids)]
 	pub(super) type AcceptedBids<T: Config> =
-		StorageValue<_, BoundedVec<(ProductId, SelectedFlexibleLoad), T::MaxProducts>, ValueQuery>;
+		StorageValue<_, BoundedVec<AcceptedProduct, T::MaxProducts>, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_accepted_asks)]
 	pub(super) type AcceptedAsks<T: Config> =
-		StorageValue<_, BoundedVec<(ProductId, SelectedFlexibleLoad), T::MaxProducts>, ValueQuery>;
+		StorageValue<_, BoundedVec<AcceptedProduct, T::MaxProducts>, ValueQuery>;
 
 	type AuctionPrice = u64;
 	// The price that means no auction took place.
@@ -248,6 +250,19 @@ pub mod pallet {
 		// A single product has end_period = start_period + 1
 		pub start_period: u32,
 		pub end_period: u32,
+		pub can_partially_accept: bool,
+	}
+
+	/// AcceptedProduct models a bid/offer that was accepted
+	#[derive(
+		Copy, Clone, Debug, Default, Eq, PartialEq, Decode, Encode, TypeInfo, MaxEncodedLen,
+	)]
+	pub struct AcceptedProduct {
+		pub id: ProductId,
+		pub load_index: SelectedFlexibleLoad,
+		// Percentage of quantity accepted. [0, 100]. We use an integer here because the runttime cannot
+		// perform floating point arithmetic
+		pub percentage: u8,
 	}
 
 	impl Product {
@@ -281,6 +296,7 @@ pub mod pallet {
 		Ask,
 	}
 
+	// At most one of the product in a flexible product can be accepted.
 	pub(super) type FlexibleProduct = BoundedVec<Product, MaxFlexibleLoadsPerProduct>;
 	// Index of the flexible load selected for clearing
 	pub(super) type SelectedFlexibleLoad = u32;
@@ -392,10 +408,9 @@ pub mod pallet {
 			auction_prices: BoundedVec<AuctionPrice, T::ContinuousPeriods>,
 			// For each account, provide a vector of which bids are accepted.
 			// Each bid is represented by the product ID and flexible product index
-			accepted_bids: BoundedVec<(ProductId, SelectedFlexibleLoad), T::MaxProducts>,
-			accepted_asks: BoundedVec<(ProductId, SelectedFlexibleLoad), T::MaxProducts>,
+			accepted_bids: BoundedVec<AcceptedProduct, T::MaxProducts>,
+			accepted_asks: BoundedVec<AcceptedProduct, T::MaxProducts>,
 		) -> DispatchResultWithPostInfo {
-			log::info!("bids {}, asks {}", accepted_bids.len(), accepted_asks.len());
 			let sender = ensure_signed(origin)?;
 
 			if <Stage<T>>::get() != MARKET_STAGE_CLEARING {
@@ -537,8 +552,8 @@ pub mod pallet {
 		pub(super) auction_prices: BoundedVec<AuctionPrice, T::ContinuousPeriods>,
 		// For each account, provide a vector of which bids are accepted.
 		// Each bid is represented by the product ID and flexible product index
-		pub(super) accepted_bids: BoundedVec<(ProductId, SelectedFlexibleLoad), T::MaxProducts>,
-		pub(super) accepted_asks: BoundedVec<(ProductId, SelectedFlexibleLoad), T::MaxProducts>,
+		pub(super) accepted_bids: BoundedVec<AcceptedProduct, T::MaxProducts>,
+		pub(super) accepted_asks: BoundedVec<AcceptedProduct, T::MaxProducts>,
 	}
 
 	impl<T: Config> Pallet<T> {
@@ -585,8 +600,8 @@ pub mod pallet {
 		/// Returns the social welfare score
 		pub(crate) fn validate_solution(
 			auction_prices: &BoundedVec<AuctionPrice, T::ContinuousPeriods>,
-			bids: &BoundedVec<(ProductId, SelectedFlexibleLoad), T::MaxProducts>,
-			asks: &BoundedVec<(ProductId, SelectedFlexibleLoad), T::MaxProducts>,
+			bids: &BoundedVec<AcceptedProduct, T::MaxProducts>,
+			asks: &BoundedVec<AcceptedProduct, T::MaxProducts>,
 		) -> Result<u64, Error<T>> {
 			let (utilities, bid_quantities) =
 				Self::validate_accepted_product(bids, ProductType::Bid, auction_prices)?;
@@ -618,7 +633,7 @@ pub mod pallet {
 		/// Validates if the auction price satisfies the bids/asks.
 		/// Returns the utilities/costs and total quantity per period
 		fn validate_accepted_product(
-			accepted_products: &BoundedVec<(ProductId, SelectedFlexibleLoad), T::MaxProducts>,
+			accepted_products: &BoundedVec<AcceptedProduct, T::MaxProducts>,
 			product_type: ProductType,
 			auction_prices: &[AuctionPrice],
 		) -> Result<(SocialWelfare, Vec<u64>), Error<T>> {
@@ -629,18 +644,18 @@ pub mod pallet {
 			for _ in 0..periods {
 				quantities.push(0);
 			}
-			for (id, load_index) in accepted_products.iter() {
-				let load_index = *load_index as usize;
+			for ap in accepted_products.iter() {
+				let load_index = ap.load_index as usize;
 				let product = match product_type {
 					ProductType::Bid => {
-						let flexible_product = <Bids<T>>::get(id);
+						let flexible_product = <Bids<T>>::get(ap.id);
 						let Some(product) = flexible_product.get(load_index) else {
 							return Err(Error::<T>::BidNotFound)
 						};
 						product.clone()
 					},
 					ProductType::Ask => {
-						let flexible_product = <Asks<T>>::get(id);
+						let flexible_product = <Asks<T>>::get(ap.id);
 						let Some(product) = flexible_product.get(load_index) else {
 							return Err(Error::<T>::AskNotFound)
 						};
@@ -660,12 +675,12 @@ pub mod pallet {
 					match product_type {
 						ProductType::Bid =>
 							if product.price < *auction_price {
-								log::warn!("Bid {id} is too low");
+								log::warn!("Bid {} is too low", ap.id);
 								return Err(Error::<T>::BidTooLow)
 							},
 						ProductType::Ask =>
 							if product.price > *auction_price {
-								log::warn!("Ask {id} is too high");
+								log::warn!("Ask {} is too high", ap.id);
 								return Err(Error::<T>::AskTooHigh)
 							},
 					};
@@ -727,14 +742,13 @@ pub mod pallet {
 		fn double_auction_result(
 			auction_prices: &[AuctionPrice],
 			product_type: ProductType,
-		) -> Result<BoundedVec<(ProductId, SelectedFlexibleLoad), T::MaxProducts>, Error<T>> {
+		) -> Result<BoundedVec<AcceptedProduct, T::MaxProducts>, Error<T>> {
 			let products = match product_type {
 				ProductType::Bid => <Bids<T>>::iter(),
 				ProductType::Ask => <Asks<T>>::iter(),
 			};
 
-			let mut accepted: BoundedVec<(ProductId, SelectedFlexibleLoad), T::MaxProducts> =
-				Default::default();
+			let mut accepted: BoundedVec<AcceptedProduct, T::MaxProducts> = Default::default();
 			for (id, flexible_products) in products {
 				// Double auction only tries to solve the first option in flexible products
 				let Some(product) = flexible_products.first() else {
@@ -744,7 +758,9 @@ pub mod pallet {
 					}
 				};
 				if product.accept_by_auction(product_type, auction_prices) {
-					accepted.try_push((id, 0)).map_err(|_| Error::VectorTooLarge)?;
+					accepted
+						.try_push(AcceptedProduct { id, load_index: 0, percentage: 100 })
+						.map_err(|_| Error::VectorTooLarge)?;
 				}
 			}
 			Ok(accepted)

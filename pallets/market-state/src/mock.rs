@@ -92,7 +92,7 @@ frame_support::parameter_types! {
 	pub const OpenPeriod: u32 = 5;
 	pub const ContinuousPeriods: u32 = CONTINUOUS_PERIODS;
 	pub const MaxMarketPlayers: u32 = 100;
-	pub const MaxProductPerPlayer: u32 = 50;
+	pub const MaxProductPerPlayer: u32 = 500;
 	pub const MaxProducts: u32 = 5000;
 	pub const Bound: market_state::Bound = market_state::Bound {
 		feed_in_tarrif: 0,

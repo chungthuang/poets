@@ -142,6 +142,7 @@ fn generate_flexible_product_max_load<T: Config>(price: u64, quantity: u64) -> F
 				quantity,
 				start_period: 0,
 				end_period: T::ContinuousPeriods::get(),
+				can_partially_accept: true,
 			})
 			.unwrap();
 	}

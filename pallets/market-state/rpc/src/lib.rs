@@ -29,6 +29,7 @@ pub struct Product {
 	pub quantity: u64,
 	pub start_period: u32,
 	pub end_period: u32,
+	pub can_partially_accept: bool,
 }
 
 type ProductId = u32;
@@ -79,6 +80,7 @@ where
 									quantity: b.quantity,
 									start_period: b.start_period,
 									end_period: b.end_period,
+									can_partially_accept: b.can_partially_accept,
 								})
 								.collect(),
 						)
@@ -97,6 +99,7 @@ where
 									quantity: a.quantity,
 									start_period: a.start_period,
 									end_period: a.end_period,
+									can_partially_accept: a.can_partially_accept,
 								})
 								.collect(),
 						)

@@ -436,13 +436,14 @@ parameter_types! {
 	pub const OpenPeriod: u32 = 5;
 	pub const ContinuousPeriods: u32 = 24;
 	pub const MaxMarketPlayers: u32 = 100;
-	pub const MaxProductPerPlayer: u32 = 50;
-	pub const MaxProducts: u32 = 5000;
+	pub const MaxProductPerPlayer: u32 = 10_000;
+	pub const MaxProducts: u32 = 100_000;
 	pub const Bound: market_state::Bound = market_state::Bound {
 		feed_in_tarrif: 5,
 		grid_price: 10,
 		min_quantity: 1,
 		max_quantity: 20,
+		quantity_mismatch_margin: 1,
 	};
 }
 
