@@ -1,5 +1,6 @@
 # Introduction
-This repo is based on Substrate Cumulus Parachain Template
+Polkadot Energy Trading Sidechain (POETS) is a parachain for peer-to-peer energy trading.
+This repo is based on Substrate Cumulus Parachain Template.
 
 # Quick Start
 1. Install [tilt](https://tilt.dev/)
